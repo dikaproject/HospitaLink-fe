@@ -2,7 +2,7 @@ import { Routes, Route, Navigate } from "react-router-dom"
 import { Toaster } from "sonner"
 import Layout from "@/components/layout"
 import Dashboard from "@/pages/dashboard"
-import Patient from "@/pages/patien"
+import Patient from "@/pages/admin/patien"
 import Chart from "@/pages/chart"
 
 // Unified auth page
