@@ -298,12 +298,12 @@ const doctorData = {
       icon: MessageCircle,
       items: [
         {
-          title: "Chat Aktif",
-          url: "/doctor/consultation",
+          title: "Chat Konsultasi",
+          url: "/doctor/chat",
         },
         {
           title: "Menunggu Respons",
-          url: "/doctor/consultation/pending",
+          url: "/doctor/chat/pending",
         },
       ],
     },

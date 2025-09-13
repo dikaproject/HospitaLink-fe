@@ -14,6 +14,7 @@ import CreatePrescriptionPage from "@/pages/doctor/create-prescription"
 import QueueHistory from "@/pages/doctor/queue-history"
 import DoctorSchedule from "@/pages/doctor/schedule"
 import ScheduleUpcoming from "@/pages/doctor/schedule-upcoming"
+import Chat from "@/pages/doctor/chat"
 
 import AuthPage from "@/pages/auth"
 
@@ -42,6 +43,7 @@ function App() {
           <Route path="/doctor/prescription" element={<DoctorPrescription />} />
           <Route path="/doctor/prescription/create" element={<CreatePrescriptionPage />} />
           <Route path="/doctor/prescription/history" element={<DoctorPrescriptionHistory />} />
+          <Route path="/doctor/chat" element={<Chat />} />
         </Route>
       </Routes>
       
