@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -16,6 +16,9 @@ import { Loader2, Search, Plus, Eye, Edit, Trash2, Users, Stethoscope, DollarSig
 import { doctorService } from '@/services/admin/doctor';
 import type { DoctorListItem } from '@/types/admin/doctor';
 import DetailDoctorDialog from '@/components/admin/doctor/DetailDoctorDialog';
+import CreateDoctorDialog from '@/components/admin/doctor/CreateDoctorDialog';
+import EditDoctorDialog from '@/components/admin/doctor/EditDoctorDialog';
+import DeleteDoctorDialog from '@/components/admin/doctor/DeleteDoctorDialog';
 
 const DoctorPage: React.FC = () => {
   // State management
@@ -26,8 +29,14 @@ const DoctorPage: React.FC = () => {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
+  
+  // Dialog states
   const [selectedDoctorId, setSelectedDoctorId] = useState<string | null>(null);
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [selectedDoctor, setSelectedDoctor] = useState<{ id: string; fullName: string } | null>(null);
 
   const limit = 10;
 
@@ -72,10 +81,21 @@ const DoctorPage: React.FC = () => {
     setDetailDialogOpen(true);
   };
 
-  // Handle close detail dialog
-  const handleCloseDetailDialog = () => {
-    setSelectedDoctorId(null);
-    setDetailDialogOpen(false);
+  // Handle edit
+  const handleEdit = (doctorId: string) => {
+    setSelectedDoctorId(doctorId);
+    setEditDialogOpen(true);
+  };
+
+  // Handle delete
+  const handleDelete = (doctor: DoctorListItem) => {
+    setSelectedDoctor({ id: doctor.id, fullName: doctor.fullName });
+    setDeleteDialogOpen(true);
+  };
+
+  // Handle success operations
+  const handleOperationSuccess = () => {
+    fetchDoctors(page, search); // Refresh current page
   };
 
   // Format currency
@@ -165,12 +185,7 @@ const DoctorPage: React.FC = () => {
           </Button>
         </form>
         
-        <Button
-          onClick={() => {
-            // TODO: Handle add doctor
-            console.log('Add doctor clicked');
-          }}
-        >
+        <Button onClick={() => setCreateDialogOpen(true)}>
           <Plus className="mr-2 h-4 w-4" />
           Tambah Dokter
         </Button>
@@ -271,20 +286,14 @@ const DoctorPage: React.FC = () => {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => {
-                            // TODO: Handle edit doctor
-                            console.log('Edit doctor:', doctor.id);
-                          }}
+                          onClick={() => handleEdit(doctor.id)}
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => {
-                            // TODO: Handle delete doctor
-                            console.log('Delete doctor:', doctor.id);
-                          }}
+                          onClick={() => handleDelete(doctor)}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -298,12 +307,45 @@ const DoctorPage: React.FC = () => {
         </CardContent>
       </Card>
 
-      {/* Detail Dialog */}
+      {/* Dialogs */}
       {selectedDoctorId && (
         <DetailDoctorDialog
           open={detailDialogOpen}
-          onClose={handleCloseDetailDialog}
+          onClose={() => {
+            setDetailDialogOpen(false);
+            setSelectedDoctorId(null);
+          }}
           doctorId={selectedDoctorId}
+        />
+      )}
+
+      <CreateDoctorDialog
+        open={createDialogOpen}
+        onClose={() => setCreateDialogOpen(false)}
+        onSuccess={handleOperationSuccess}
+      />
+
+      {selectedDoctorId && (
+        <EditDoctorDialog
+          open={editDialogOpen}
+          onClose={() => {
+            setEditDialogOpen(false);
+            setSelectedDoctorId(null);
+          }}
+          onSuccess={handleOperationSuccess}
+          doctorId={selectedDoctorId}
+        />
+      )}
+
+      {selectedDoctor && (
+        <DeleteDoctorDialog
+          open={deleteDialogOpen}
+          onClose={() => {
+            setDeleteDialogOpen(false);
+            setSelectedDoctor(null);
+          }}
+          onSuccess={handleOperationSuccess}
+          doctor={selectedDoctor}
         />
       )}
     </div>
