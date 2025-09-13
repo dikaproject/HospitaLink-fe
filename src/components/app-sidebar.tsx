@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react"
+import { useLocation } from "react-router-dom"
 import {
   AudioWaveform,
   BookOpen,
@@ -61,7 +62,7 @@ const adminData = {
       title: "Dashboard",
       url: "/dashboard",
       icon: Activity,
-      isActive: true,
+      isActive: false, // Change from true to false
     },
     {
       title: "Manajemen Pasien",
@@ -222,7 +223,6 @@ const adminData = {
   ],
 }
 
-// Data untuk Dokter
 const doctorData = {
   user: {
     name: "Dr. Sarah",
@@ -241,7 +241,7 @@ const doctorData = {
       title: "Dashboard",
       url: "/dashboard",
       icon: Activity,
-      isActive: true,
+      isActive: false,
     },
     {
       title: "Kelola Antrian",
@@ -249,21 +249,55 @@ const doctorData = {
       icon: ClipboardList,
       items: [
         {
-          title: "Antrian Aktif",
+          title: "Antrian Hari Ini",
           url: "/doctor/queue",
         },
         {
-          title: "Panggil Pasien",
-          url: "/doctor/queue/call",
-        },
-        {
-          title: "Riwayat Hari Ini",
-          url: "/doctor/queue/today",
+          title: "Riwayat Antrian",
+          url: "/doctor/queue/history",
         },
       ],
     },
     {
-      title: "Chat Online",
+      title: "Jadwal Praktik",
+      url: "/doctor/schedule",
+      icon: Calendar,
+      items: [
+        {
+          title: "Jadwal Minggu Ini",
+          url: "/doctor/schedule",
+        },
+        {
+          title: "Jadwal Mendatang",
+          url: "/doctor/schedule/upcoming",
+        },
+        {
+          title: "Atur Jadwal",
+          url: "/doctor/schedule/manage",
+        },
+      ],
+    },
+    {
+      title: "Resep Digital",
+      url: "/doctor/prescription",
+      icon: Pill,
+      items: [
+        {
+          title: "Resep Hari Ini",
+          url: "/doctor/prescription",
+        },
+        {
+          title: "Buat Resep",
+          url: "/doctor/prescription/create",
+        },
+        {
+          title: "Riwayat Resep",
+          url: "/doctor/prescription/history",
+        },
+      ],
+    },
+    {
+      title: "Konsultasi Online",
       url: "/doctor/consultation",
       icon: MessageCircle,
       items: [
@@ -275,81 +309,14 @@ const doctorData = {
           title: "Menunggu Respons",
           url: "/doctor/consultation/pending",
         },
-        {
-          title: "Riwayat Chat",
-          url: "/doctor/consultation/history",
-        },
-      ],
-    },
-    {
-      title: "Jadwal & Appointment",
-      url: "/doctor/schedule",
-      icon: Calendar,
-      items: [
-        {
-          title: "Jadwal Hari Ini",
-          url: "/doctor/schedule/today",
-        },
-        {
-          title: "Jadwal Minggu Ini",
-          url: "/doctor/schedule/week",
-        },
-        {
-          title: "Appointment",
-          url: "/doctor/appointments",
-        },
-      ],
-    },
-    {
-      title: "Resep Digital",
-      url: "/doctor/prescriptions",
-      icon: Pill,
-      items: [
-        {
-          title: "Buat Resep",
-          url: "/doctor/prescriptions/create",
-        },
-        {
-          title: "Resep Hari Ini",
-          url: "/doctor/prescriptions/today",
-        },
-        {
-          title: "Riwayat Resep",
-          url: "/doctor/prescriptions/history",
-        },
-      ],
-    },
-    {
-      title: "Rekam Medis",
-      url: "/doctor/medical-records",
-      icon: FileText,
-      items: [
-        {
-          title: "Input Diagnosis",
-          url: "/doctor/medical-records/create",
-        },
-        {
-          title: "Riwayat Pasien",
-          url: "/doctor/medical-records/history",
-        },
       ],
     },
   ],
   projects: [
     {
-      name: "Panggil Pasien Berikutnya",
-      url: "/doctor/queue/next",
-      icon: UserCheck,
-    },
-    {
-      name: "Buat Resep Cepat",
-      url: "/doctor/prescriptions/quick",
+      name: "Buat Resep",
+      url: "/doctor/prescription/create",
       icon: Pill,
-    },
-    {
-      name: "Cek Jadwal",
-      url: "/doctor/schedule/quick",
-      icon: CalendarCheck,
     },
   ],
 }
@@ -357,13 +324,28 @@ const doctorData = {
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const [currentData, setCurrentData] = useState(adminData)
   const [userRole, setUserRole] = useState<'ADMIN' | 'DOCTOR' | null>(null)
+  const location = useLocation()
 
   useEffect(() => {
-    // Get user role from auth service
     const role = authService.getUserRole()
     const user = authService.getCurrentUser()
     
     setUserRole(role)
+    
+    const currentUrl = location.pathname + location.search
+    
+    const isUrlMatch = (itemUrl: string, currentUrl: string) => {
+      // Handle exact path match
+      if (itemUrl === location.pathname) return true
+      
+      // Handle query parameters
+      const [itemPath, itemQuery] = itemUrl.split('?')
+      if (itemPath === location.pathname && itemQuery) {
+        return location.search.includes(itemQuery)
+      }
+      
+      return false
+    }
     
     if (role === 'ADMIN') {
       setCurrentData({
@@ -372,7 +354,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           name: user?.name || "Admin HospitaLink",
           email: user?.email || "admin@hospitalink.com",
           avatar: user?.profilePicture || "/avatars/admin.jpg",
-        }
+        },
+        navMain: adminData.navMain.map(item => ({
+          ...item,
+          isActive: isUrlMatch(item.url, currentUrl) || 
+                   (item.items && item.items.some(subItem => isUrlMatch(subItem.url, currentUrl)))
+        }))
       })
     } else if (role === 'DOCTOR') {
       setCurrentData({
@@ -381,10 +368,15 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           name: user?.name || "Dr. Dokter",
           email: user?.email || "doctor@hospitalink.com",
           avatar: user?.profilePicture || "/avatars/doctor.jpg",
-        }
+        },
+        navMain: doctorData.navMain.map(item => ({
+          ...item,
+          isActive: isUrlMatch(item.url, currentUrl) || 
+                   (item.items && item.items.some(subItem => isUrlMatch(subItem.url, currentUrl)))
+        }))
       })
     }
-  }, [])
+  }, [location.pathname, location.search]) // Add location.search dependency
 
   const handleLogout = async () => {
     try {
@@ -399,17 +391,25 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   }
 
   return (
-    <Sidebar collapsible="icon" {...props}>
-      <SidebarHeader>
+    <Sidebar 
+      collapsible="icon" 
+      className="border-r border-gray-200/80 dark:border-gray-800/80 bg-gradient-to-b from-slate-50 to-white dark:from-gray-900/95 dark:to-gray-950/95 backdrop-blur-xl" 
+      {...props}
+    >
+      <SidebarHeader className="border-b border-gray-200/50 dark:border-gray-800/50 bg-white/50 dark:bg-gray-900/50 backdrop-blur-md">
         <TeamSwitcher teams={currentData.teams} />
       </SidebarHeader>
-      <SidebarContent>
+      
+      <SidebarContent className="px-2 py-4 space-y-2">
         <NavMain items={currentData.navMain} />
+        <div className="h-px bg-gradient-to-r from-transparent via-gray-200 dark:via-gray-700 to-transparent my-4" />
         <NavProjects projects={currentData.projects} />
       </SidebarContent>
-      <SidebarFooter>
+      
+      <SidebarFooter className="border-t border-gray-200/50 dark:border-gray-800/50 bg-white/50 dark:bg-gray-900/50 backdrop-blur-md p-2">
         <NavUser user={currentData.user} onLogout={handleLogout} />
       </SidebarFooter>
+      
       <SidebarRail />
     </Sidebar>
   )

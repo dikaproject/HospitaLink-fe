@@ -5,7 +5,13 @@ import Dashboard from "@/pages/dashboard"
 import Patient from "@/pages/admin/patien"
 import Chart from "@/pages/chart"
 
-// Unified auth page
+// Doctor pages
+import DoctorQueue from "@/pages/doctor/queue"
+import DoctorPrescription from "@/pages/doctor/prescription"
+import DoctorPrescriptionHistory from "@/pages/doctor/prescription-history"
+import CreatePrescriptionPage from "@/pages/doctor/create-prescription"
+import QueueHistory from "@/pages/doctor/queue-history"
+
 import AuthPage from "@/pages/auth"
 
 function App() {
@@ -23,6 +29,14 @@ function App() {
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/patient" element={<Patient />} />
           <Route path="/chart" element={<Chart />} />
+          
+          {/* Doctor routes */}
+          <Route path="/doctor/queue" element={<DoctorQueue />} />
+          <Route path="/doctor/queue/history" element={<QueueHistory />} />
+          <Route path="/doctor/schedule" element={<div>Doctor Schedule Coming Soon</div>} />
+          <Route path="/doctor/prescription" element={<DoctorPrescription />} />
+          <Route path="/doctor/prescription/create" element={<CreatePrescriptionPage />} />
+          <Route path="/doctor/prescription/history" element={<DoctorPrescriptionHistory />} />
         </Route>
       </Routes>
       
