@@ -271,10 +271,6 @@ const doctorData = {
           title: "Jadwal Mendatang",
           url: "/doctor/schedule/upcoming",
         },
-        {
-          title: "Atur Jadwal",
-          url: "/doctor/schedule/manage",
-        },
       ],
     },
     {

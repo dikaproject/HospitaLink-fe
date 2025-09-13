@@ -27,8 +27,7 @@ export function PrescriptionCard({ prescription, onClick }: PrescriptionCardProp
     });
   };
 
-  const formatCurrency = (amount?: number) => {
-    if (!amount) return 'Gratis';
+  const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('id-ID', {
       style: 'currency',
       currency: 'IDR',
@@ -83,12 +82,10 @@ export function PrescriptionCard({ prescription, onClick }: PrescriptionCardProp
             <span>{formatTime(prescription.createdAt)}</span>
           </div>
 
-          {prescription.totalAmount && (
-            <div className="flex items-center gap-2">
-              <CreditCard className="w-4 h-4" />
-              <span>{formatCurrency(prescription.totalAmount)}</span>
-            </div>
-          )}
+          <div className="flex items-center gap-2">
+            <CreditCard className="w-4 h-4" />
+            <span>{formatCurrency(prescription.totalAmount)}</span>
+          </div>
           
           {prescription.expiresAt && (
             <div className="flex items-center gap-2">
@@ -102,11 +99,13 @@ export function PrescriptionCard({ prescription, onClick }: PrescriptionCardProp
 
         {prescription.medications && prescription.medications.length > 0 && (
           <div className="mt-3">
-            <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Obat:</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+              Obat ({prescription.medications.length}):
+            </p>
             <div className="flex flex-wrap gap-1">
               {prescription.medications.slice(0, 3).map((med, index) => (
                 <Badge key={index} variant="outline" className="text-xs border-gray-300 dark:border-gray-600">
-                  {med.name}
+                  {med.genericName} {med.quantity}x
                 </Badge>
               ))}
               {prescription.medications.length > 3 && (

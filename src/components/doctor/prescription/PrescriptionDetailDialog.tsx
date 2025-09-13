@@ -191,7 +191,7 @@ export function PrescriptionDetailDialog({
             </CardContent>
           </Card>
 
-          {/* Medications */}
+          {/* Medications - Update this section */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -207,17 +207,32 @@ export function PrescriptionDetailDialog({
                     className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg"
                   >
                     <div className="flex items-start justify-between mb-3">
-                      <h4 className="font-semibold text-gray-900 dark:text-gray-100">
-                        {medication.name}
-                      </h4>
-                      <Badge variant="outline">#{index + 1}</Badge>
+                      <div>
+                        <h4 className="font-semibold text-gray-900 dark:text-gray-100">
+                          {medication.genericName}
+                          {medication.brandName && (
+                            <span className="text-gray-600 dark:text-gray-400 ml-1">
+                              ({medication.brandName})
+                            </span>
+                          )}
+                        </h4>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          {medication.medicationCode} • {medication.dosageForm} {medication.strength}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <Badge variant="outline">#{index + 1}</Badge>
+                        <p className="text-sm font-medium text-green-600 dark:text-green-400 mt-1">
+                          {formatCurrency(medication.totalPrice)}
+                        </p>
+                      </div>
                     </div>
                     
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
                       <div>
-                        <p className="text-gray-500 dark:text-gray-400">Dosis</p>
+                        <p className="text-gray-500 dark:text-gray-400">Kuantitas</p>
                         <p className="font-medium text-gray-900 dark:text-gray-100">
-                          {medication.dosage}
+                          {medication.quantity} {medication.unit}
                         </p>
                       </div>
                       <div>
@@ -233,21 +248,40 @@ export function PrescriptionDetailDialog({
                         </p>
                       </div>
                       <div>
-                        <p className="text-gray-500 dark:text-gray-400">Jumlah</p>
+                        <p className="text-gray-500 dark:text-gray-400">Harga/Unit</p>
                         <p className="font-medium text-gray-900 dark:text-gray-100">
-                          {medication.quantity || 1}
+                          {formatCurrency(medication.pricePerUnit)}
                         </p>
                       </div>
                     </div>
                     
-                    {medication.instructions && (
-                      <div className="mt-3 p-2 bg-gray-50 dark:bg-gray-800 rounded text-sm">
-                        <p className="text-gray-500 dark:text-gray-400">Instruksi:</p>
-                        <p className="text-gray-900 dark:text-gray-100">{medication.instructions}</p>
+                    {medication.dosageInstructions && (
+                      <div className="mt-3 p-2 bg-blue-50 dark:bg-blue-900/20 rounded text-sm">
+                        <p className="text-gray-500 dark:text-gray-400">Instruksi Dosis:</p>
+                        <p className="text-gray-900 dark:text-gray-100">{medication.dosageInstructions}</p>
+                      </div>
+                    )}
+
+                    {medication.notes && (
+                      <div className="mt-2 p-2 bg-gray-50 dark:bg-gray-800 rounded text-sm">
+                        <p className="text-gray-500 dark:text-gray-400">Catatan:</p>
+                        <p className="text-gray-900 dark:text-gray-100">{medication.notes}</p>
                       </div>
                     )}
                   </div>
                 ))}
+
+                {/* Total Summary */}
+                <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-lg font-medium text-gray-900 dark:text-gray-100">
+                      Total Biaya:
+                    </span>
+                    <span className="text-xl font-bold text-green-600 dark:text-green-400">
+                      {formatCurrency(prescription.totalAmount)}
+                    </span>
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>

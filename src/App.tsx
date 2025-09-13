@@ -11,6 +11,8 @@ import DoctorPrescription from "@/pages/doctor/prescription"
 import DoctorPrescriptionHistory from "@/pages/doctor/prescription-history"
 import CreatePrescriptionPage from "@/pages/doctor/create-prescription"
 import QueueHistory from "@/pages/doctor/queue-history"
+import DoctorSchedule from "@/pages/doctor/schedule"
+import ScheduleUpcoming from "@/pages/doctor/schedule-upcoming"
 
 import AuthPage from "@/pages/auth"
 
@@ -33,7 +35,8 @@ function App() {
           {/* Doctor routes */}
           <Route path="/doctor/queue" element={<DoctorQueue />} />
           <Route path="/doctor/queue/history" element={<QueueHistory />} />
-          <Route path="/doctor/schedule" element={<div>Doctor Schedule Coming Soon</div>} />
+          <Route path="/doctor/schedule" element={<DoctorSchedule />} />
+          <Route path="/doctor/schedule/upcoming" element={<ScheduleUpcoming />} />
           <Route path="/doctor/prescription" element={<DoctorPrescription />} />
           <Route path="/doctor/prescription/create" element={<CreatePrescriptionPage />} />
           <Route path="/doctor/prescription/history" element={<DoctorPrescriptionHistory />} />

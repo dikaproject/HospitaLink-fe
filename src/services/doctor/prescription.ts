@@ -3,11 +3,39 @@ import type {
   Prescription,
   TodayPrescriptionsResponse,
   CreatePrescriptionRequest,
+  CreatePrescriptionResponse,
   PrescriptionHistoryResponse,
-  PrescriptionSummary
+  Medication,
+  MedicationCategory
 } from '@/types/doctor/prescription';
 
 class PrescriptionService {
+  // Search medications for prescription
+  async searchMedications(query: string, category?: string, limit?: number): Promise<{
+    medications: Medication[];
+    query: string;
+    total: number;
+  }> {
+    const params: any = { q: query };
+    if (category) params.category = category;
+    if (limit) params.limit = limit;
+    
+    const response = await api.get('/api/web/doctor/prescriptions/medications/search', { params });
+    return response.data.data;
+  }
+
+  // Get medication categories
+  async getMedicationCategories(): Promise<MedicationCategory[]> {
+    const response = await api.get('/api/web/doctor/prescriptions/medications/categories');
+    return response.data.data;
+  }
+
+  // Get medication detail
+  async getMedicationDetail(id: string): Promise<Medication> {
+    const response = await api.get(`/api/web/doctor/prescriptions/medications/${id}`);
+    return response.data.data;
+  }
+
   // Get today's prescriptions
   async getTodayPrescriptions(): Promise<TodayPrescriptionsResponse> {
     const response = await api.get('/api/web/doctor/prescriptions/today');
@@ -20,16 +48,8 @@ class PrescriptionService {
     limit?: number;
     startDate?: string;
     endDate?: string;
-  }): Promise<{
-    prescriptions: Prescription[];
-    summary: PrescriptionSummary;
-    pagination: {
-      page: number;
-      limit: number;
-      total: number;
-      totalPages: number;
-    };
-  }> {
+    status?: string;
+  }): Promise<PrescriptionHistoryResponse> {
     const response = await api.get('/api/web/doctor/prescriptions/history', { params });
     return response.data.data;
   }
@@ -41,7 +61,7 @@ class PrescriptionService {
   }
 
   // Create new prescription
-  async createPrescription(data: CreatePrescriptionRequest): Promise<Prescription> {
+  async createPrescription(data: CreatePrescriptionRequest): Promise<CreatePrescriptionResponse> {
     const response = await api.post('/api/web/doctor/prescriptions', data);
     return response.data.data;
   }

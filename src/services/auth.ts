@@ -50,28 +50,99 @@ export interface DashboardStats {
 class AuthService {
   // Admin login
   async loginAdmin(credentials: LoginCredentials): Promise<AuthResponse> {
-    const response = await api.post('/api/web/admin/login', credentials);
-    
-    if (response.data.success) {
-      // Store role in localStorage for role detection
-      localStorage.setItem('userRole', 'ADMIN');
-      localStorage.setItem('user', JSON.stringify(response.data.data.admin));
+    try {
+      console.log('🔄 Attempting admin login with:', { 
+        email: credentials.email,
+        hasPassword: !!credentials.password 
+      });
+      
+      const response = await api.post('/api/web/admin/login', credentials);
+      
+      console.log('✅ Admin login response:', response.data);
+      
+      if (response.data.success) {
+        localStorage.setItem('userRole', 'ADMIN');
+        localStorage.setItem('user', JSON.stringify(response.data.data.admin));
+      }
+      
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ Admin Login Error Details:', {
+        message: error.message,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        config: {
+          url: error.config?.url,
+          method: error.config?.method,
+          baseURL: error.config?.baseURL
+        }
+      });
+      
+      // More specific error handling
+      if (error.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      } else if (error.response?.status === 401) {
+        throw new Error('Email atau password salah');
+      } else if (error.response?.status === 404) {
+        throw new Error('Endpoint tidak ditemukan - periksa server');
+      } else if (error.response?.status === 500) {
+        throw new Error('Server error, coba lagi nanti');
+      } else if (error.code === 'ERR_NETWORK') {
+        throw new Error('Koneksi bermasalah, periksa server berjalan di port 5000');
+      } else {
+        throw new Error(error.message || 'Login gagal');
+      }
     }
-    
-    return response.data;
   }
 
   // Doctor login
   async loginDoctor(credentials: LoginCredentials): Promise<AuthResponse> {
-    const response = await api.post('/api/web/doctor/login', credentials);
-    
-    if (response.data.success) {
-      // Store role in localStorage for role detection
-      localStorage.setItem('userRole', 'DOCTOR');
-      localStorage.setItem('user', JSON.stringify(response.data.data.doctor));
+    try {
+      console.log('🔄 Attempting doctor login with:', { 
+        email: credentials.email,
+        nik: credentials.nik,
+        hasPassword: !!credentials.password 
+      });
+      
+      const response = await api.post('/api/web/doctor/login', credentials);
+      
+      console.log('✅ Doctor login response:', response.data);
+      
+      if (response.data.success) {
+        localStorage.setItem('userRole', 'DOCTOR');
+        localStorage.setItem('user', JSON.stringify(response.data.data.doctor));
+      }
+      
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ Doctor Login Error Details:', {
+        message: error.message,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        config: {
+          url: error.config?.url,
+          method: error.config?.method,
+          baseURL: error.config?.baseURL
+        }
+      });
+      
+      // More specific error handling
+      if (error.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      } else if (error.response?.status === 401) {
+        throw new Error('Email/NIK atau password salah');
+      } else if (error.response?.status === 404) {
+        throw new Error('Endpoint tidak ditemukan - periksa server');
+      } else if (error.response?.status === 500) {
+        throw new Error('Server error, coba lagi nanti');
+      } else if (error.code === 'ERR_NETWORK') {
+        throw new Error('Koneksi bermasalah, periksa server berjalan di port 5000');
+      } else {
+        throw new Error(error.message || 'Login gagal');
+      }
     }
-    
-    return response.data;
   }
 
   // Get admin dashboard

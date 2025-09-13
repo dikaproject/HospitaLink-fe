@@ -1,4 +1,5 @@
-import { useState } from 'react';
+// Update: hospitalink-fe/src/pages/doctor/create-prescription.tsx
+import { useState, useEffect } from 'react';
 import { ChevronLeft, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
@@ -6,33 +7,116 @@ import { Link, useNavigate } from 'react-router-dom';
 
 import { CreatePrescriptionDialog } from '@/components/doctor/prescription/CreatePrescriptionDialog';
 import { prescriptionService } from '@/services/doctor/prescription';
+import { patientService } from '@/services/doctor/patient'; // Fixed import path
 import type { CreatePrescriptionRequest } from '@/types/doctor/prescription';
 
-// Mock patients data - replace with actual patient service
-const mockPatients = [
-  { id: '1', fullName: 'John Doe', nik: '1234567890123456', phone: '081234567890' },
-  { id: '2', fullName: 'Jane Smith', nik: '1234567890123457', phone: '081234567891' },
-  { id: '3', fullName: 'Ahmad Budi', nik: '1234567890123458', phone: '081234567892' },
-  { id: '4', fullName: 'Siti Nurhaliza', nik: '1234567890123459', phone: '081234567893' },
-];
+interface Patient {
+  id: string;
+  fullName: string;
+  nik: string;
+  phone: string;
+}
 
 export default function CreatePrescriptionPage() {
   const [loading, setLoading] = useState(false);
+  const [patients, setPatients] = useState<Patient[]>([]);
+  const [loadingPatients, setLoadingPatients] = useState(true);
   const navigate = useNavigate();
+
+  // Load patients on mount
+  useEffect(() => {
+    const loadPatients = async () => {
+      try {
+        setLoadingPatients(true);
+        const response = await patientService.getAll();
+        if (response.success) {
+          setPatients(response.data);
+        } else {
+          // If API doesn't exist yet, use mock data
+          setPatients([
+            {
+              id: '1',
+              fullName: 'Ahmad Wijaya',
+              nik: '1234567890123456',
+              phone: '081234567890'
+            },
+            {
+              id: '2', 
+              fullName: 'Siti Nurhaliza',
+              nik: '2345678901234567',
+              phone: '081234567891'
+            },
+            {
+              id: '3',
+              fullName: 'Budi Santoso', 
+              nik: '3456789012345678',
+              phone: '081234567892'
+            }
+          ]);
+        }
+      } catch (error) {
+        console.error('Load patients error:', error);
+        
+        // Use mock data as fallback
+        setPatients([
+          {
+            id: '1',
+            fullName: 'Ahmad Wijaya',
+            nik: '1234567890123456',
+            phone: '081234567890'
+          },
+          {
+            id: '2',
+            fullName: 'Siti Nurhaliza',
+            nik: '2345678901234567',
+            phone: '081234567891'
+          },
+          {
+            id: '3',
+            fullName: 'Budi Santoso',
+            nik: '3456789012345678', 
+            phone: '081234567892'
+          }
+        ]);
+        
+        toast.error('Menggunakan data pasien contoh');
+      } finally {
+        setLoadingPatients(false);
+      }
+    };
+
+    loadPatients();
+  }, []);
 
   const handleCreatePrescription = async (data: CreatePrescriptionRequest) => {
     try {
       setLoading(true);
-      await prescriptionService.createPrescription(data);
-      toast.success('Resep berhasil dibuat!');
+      const result = await prescriptionService.createPrescription(data);
+      toast.success(`Resep berhasil dibuat! Kode: ${result.summary.prescriptionCode}`);
       navigate('/doctor/prescription');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Create prescription error:', error);
-      toast.error('Gagal membuat resep');
+      
+      // Handle specific error messages from backend
+      const errorMessage = error.response?.data?.message || 'Gagal membuat resep';
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
   };
+
+  if (loadingPatients) {
+    return (
+      <div className="p-6 space-y-6">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="animate-spin w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+            <p className="text-gray-600 dark:text-gray-300">Memuat data pasien...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 space-y-6">
@@ -64,7 +148,7 @@ export default function CreatePrescriptionPage() {
           }
         }}
         onSubmit={handleCreatePrescription}
-        patients={mockPatients}
+        patients={patients}
       />
     </div>
   );
