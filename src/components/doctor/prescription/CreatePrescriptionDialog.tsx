@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Trash2, Pill, Save, Search, ShoppingCart } from 'lucide-react';
+import { Plus, Trash2, Pill, Save, Search, ShoppingCart, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { 
   Dialog, 
@@ -15,6 +15,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { prescriptionService } from '@/services/doctor/prescription';
+import { patientService, type Patient } from '@/services/doctor/patient';
 import type { 
   CreatePrescriptionRequest, 
   CreatePrescriptionMedication,
@@ -22,28 +23,25 @@ import type {
   MedicationCategory
 } from '@/types/doctor/prescription';
 
-interface Patient {
-  id: string;
-  fullName: string;
-  nik?: string;
-  phone?: string;
-}
-
 interface CreatePrescriptionDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSubmit: (data: CreatePrescriptionRequest) => void;
-  patients?: Patient[];
+  patients?: Patient[]; // Keep for backward compatibility
 }
 
 export function CreatePrescriptionDialog({
   open,
   onOpenChange,
   onSubmit,
-  patients = []
+  patients = [] // Not used anymore, will fetch from API
 }: CreatePrescriptionDialogProps) {
   const [selectedPatientId, setSelectedPatientId] = useState('');
+  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null); // Store selected patient separately
   const [patientSearch, setPatientSearch] = useState('');
+  const [patientSearchResults, setPatientSearchResults] = useState<Patient[]>([]);
+  const [patientSearchLoading, setPatientSearchLoading] = useState(false);
+  const [showPatientDropdown, setShowPatientDropdown] = useState(false); // Control dropdown visibility
   const [consultationId, setConsultationId] = useState('');
   const [instructions, setInstructions] = useState('');
   const [medications, setMedications] = useState<CreatePrescriptionMedication[]>([]);
@@ -56,17 +54,44 @@ export function CreatePrescriptionDialog({
   const [selectedCategory, setSelectedCategory] = useState('');
   const [showMedicationSearch, setShowMedicationSearch] = useState(false);
 
-  // Safe patient filtering with null checks
-  const selectedPatient = patients.find(p => p.id === selectedPatientId);
-  const filteredPatients = patients.filter(p => {
-    if (!p) return false; // Guard against null/undefined patients
-    
-    const searchTerm = patientSearch.toLowerCase();
-    const fullName = (p.fullName || '').toLowerCase();
-    const nik = (p.nik || '').toLowerCase();
-    
-    return fullName.includes(searchTerm) || nik.includes(searchTerm);
-  });
+  // Search patients with API
+  const searchPatients = async (query: string) => {
+    if (!query || query.length < 2) {
+      setPatientSearchResults([]);
+      setShowPatientDropdown(false);
+      return;
+    }
+
+    try {
+      setPatientSearchLoading(true);
+      const response = await patientService.searchPatients(query, 10);
+      
+      if (response.success) {
+        setPatientSearchResults(response.data || []);
+        setShowPatientDropdown(true); // Show dropdown when results are available
+      } else {
+        setPatientSearchResults([]);
+        setShowPatientDropdown(false);
+        toast.error('Gagal mencari pasien');
+      }
+    } catch (error) {
+      console.error('Search patients error:', error);
+      setPatientSearchResults([]);
+      setShowPatientDropdown(false);
+      toast.error('Gagal mencari pasien');
+    } finally {
+      setPatientSearchLoading(false);
+    }
+  };
+
+  // Debounced patient search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      searchPatients(patientSearch);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [patientSearch]);
 
   // Load medication categories on mount
   useEffect(() => {
@@ -109,7 +134,7 @@ export function CreatePrescriptionDialog({
     }
   };
 
-  // Debounced search
+  // Debounced medication search
   useEffect(() => {
     const timer = setTimeout(() => {
       searchMedications(medicationSearch);
@@ -117,6 +142,24 @@ export function CreatePrescriptionDialog({
 
     return () => clearTimeout(timer);
   }, [medicationSearch, selectedCategory]);
+
+  // Handle patient selection
+  const handleSelectPatient = (patient: Patient) => {
+    setSelectedPatientId(patient.id);
+    setSelectedPatient(patient);
+    setPatientSearch(''); // Clear search input
+    setPatientSearchResults([]); // Clear search results
+    setShowPatientDropdown(false); // Hide dropdown
+  };
+
+  // Handle change patient
+  const handleChangePatient = () => {
+    setSelectedPatientId('');
+    setSelectedPatient(null);
+    setPatientSearch('');
+    setPatientSearchResults([]);
+    setShowPatientDropdown(false);
+  };
 
   const addMedicationToList = (medication: Medication) => {
     const exists = medications.find(m => m.medicationId === medication.id);
@@ -171,7 +214,10 @@ export function CreatePrescriptionDialog({
     
     // Reset form
     setSelectedPatientId('');
+    setSelectedPatient(null);
     setPatientSearch('');
+    setPatientSearchResults([]);
+    setShowPatientDropdown(false);
     setConsultationId('');
     setInstructions('');
     setMedications([]);
@@ -199,80 +245,131 @@ export function CreatePrescriptionDialog({
             Buat Resep Digital
           </DialogTitle>
           <DialogDescription className="text-gray-600 dark:text-gray-300">
-            Buat resep digital dengan sistem pencarian obat otomatis
+            Buat resep digital dengan sistem pencarian pasien dan obat otomatis
           </DialogDescription>
         </DialogHeader>
         
         <div className="py-4 space-y-6">
           {/* Patient Selection */}
           <div className="space-y-3">
-            <Label htmlFor="patientSearch" className="text-sm font-medium text-gray-700 dark:text-gray-200">
+            <Label htmlFor="patientSearch" className="text-sm font-medium text-gray-700 dark:text-gray-200 flex items-center gap-2">
+              <Users className="w-4 h-4" />
               Pilih Pasien *
             </Label>
             
             {selectedPatient ? (
-              <div className="p-3 bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800 rounded-lg">
+              <div className="p-4 bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800 rounded-lg">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h4 className="font-semibold text-gray-900 dark:text-gray-100">
-                      {selectedPatient.fullName || 'Nama tidak tersedia'}
+                    <h4 className="font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                      {selectedPatient.fullName}
+                      {selectedPatient.age && (
+                        <Badge variant="outline" className="text-xs">
+                          {selectedPatient.age} tahun
+                        </Badge>
+                      )}
+                      {selectedPatient.gender && (
+                        <Badge variant="outline" className="text-xs">
+                          {selectedPatient.gender === 'MALE' ? 'Laki-laki' : 'Perempuan'}
+                        </Badge>
+                      )}
                     </h4>
-                    <p className="text-sm text-gray-600 dark:text-gray-300">
-                      NIK: {selectedPatient.nik || 'Tidak tersedia'} • {selectedPatient.phone || 'Tidak tersedia'}
-                    </p>
+                    <div className="text-sm text-gray-600 dark:text-gray-300 space-y-1 mt-1">
+                      <p>NIK: {selectedPatient.nik || 'Tidak tersedia'}</p>
+                      <p>Telepon: {selectedPatient.phone || 'Tidak tersedia'}</p>
+                      {selectedPatient.email && (
+                        <p>Email: {selectedPatient.email}</p>
+                      )}
+                    </div>
                   </div>
                   <Button 
                     variant="outline" 
                     size="sm"
-                    onClick={() => setSelectedPatientId('')}
+                    onClick={handleChangePatient}
                   >
-                    Ganti
+                    Ganti Pasien
                   </Button>
                 </div>
               </div>
             ) : (
-              <div className="space-y-2">
-                <Input
-                  id="patientSearch"
-                  value={patientSearch}
-                  onChange={(e) => setPatientSearch(e.target.value)}
-                  placeholder="Cari nama atau NIK pasien..."
-                  className="w-full"
-                />
+              <div className="space-y-2 relative">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <Input
+                    id="patientSearch"
+                    value={patientSearch}
+                    onChange={(e) => setPatientSearch(e.target.value)}
+                    onFocus={() => {
+                      if (patientSearchResults.length > 0) {
+                        setShowPatientDropdown(true);
+                      }
+                    }}
+                    placeholder="Cari nama, NIK, telepon, atau email pasien..."
+                    className="w-full pl-10"
+                  />
+                  {patientSearchLoading && (
+                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                      <div className="animate-spin w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full"></div>
+                    </div>
+                  )}
+                </div>
                 
-                {patientSearch && (
-                  <div className="max-h-40 overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-lg">
-                    {filteredPatients.length > 0 ? (
-                      filteredPatients.map((patient) => (
+                {/* Dropdown - Only show when conditions are met */}
+                {showPatientDropdown && patientSearch.length >= 2 && (
+                  <div className="absolute z-50 w-full max-h-60 overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 shadow-lg">
+                    {patientSearchLoading ? (
+                      <div className="p-4 text-center text-gray-500 dark:text-gray-400">
+                        <div className="animate-spin w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full mx-auto mb-2"></div>
+                        Mencari pasien...
+                      </div>
+                    ) : patientSearchResults.length > 0 ? (
+                      patientSearchResults.map((patient) => (
                         <div
                           key={patient.id}
-                          className="p-3 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer border-b border-gray-100 dark:border-gray-700 last:border-0"
-                          onClick={() => {
-                            setSelectedPatientId(patient.id);
-                            setPatientSearch('');
-                          }}
+                          className="p-3 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer border-b border-gray-100 dark:border-gray-600 last:border-0"
+                          onClick={() => handleSelectPatient(patient)}
                         >
-                          <div className="font-medium text-gray-900 dark:text-gray-100">
-                            {patient.fullName || 'Nama tidak tersedia'}
-                          </div>
-                          <div className="text-sm text-gray-500 dark:text-gray-400">
-                            NIK: {patient.nik || 'Tidak tersedia'} • {patient.phone || 'Tidak tersedia'}
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <div className="font-medium text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                                {patient.fullName}
+                                {patient.age && (
+                                  <Badge variant="outline" className="text-xs">
+                                    {patient.age} th
+                                  </Badge>
+                                )}
+                                {patient.gender && (
+                                  <Badge variant="outline" className="text-xs">
+                                    {patient.gender === 'MALE' ? 'L' : 'P'}
+                                  </Badge>
+                                )}
+                              </div>
+                              <div className="text-sm text-gray-500 dark:text-gray-400 mt-1 space-y-1">
+                                <div>NIK: {patient.nik || 'Tidak tersedia'}</div>
+                                <div>Telepon: {patient.phone || 'Tidak tersedia'}</div>
+                                {patient.email && (
+                                  <div>Email: {patient.email}</div>
+                                )}
+                              </div>
+                            </div>
                           </div>
                         </div>
                       ))
                     ) : (
-                      <div className="p-3 text-center text-gray-500 dark:text-gray-400">
+                      <div className="p-4 text-center text-gray-500 dark:text-gray-400">
                         Pasien tidak ditemukan
+                        <p className="text-xs mt-1">
+                          Pastikan pasien sudah pernah berkonsultasi atau membuat janji
+                        </p>
                       </div>
                     )}
                   </div>
                 )}
 
-                {/* Show message if no patients loaded */}
-                {patients.length === 0 && (
-                  <div className="p-3 text-center text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-700 rounded-lg">
-                    Tidak ada data pasien tersedia
-                  </div>
+                {patientSearch.length > 0 && patientSearch.length < 2 && (
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    Ketik minimal 2 karakter untuk mencari pasien
+                  </p>
                 )}
               </div>
             )}
