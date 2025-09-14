@@ -1,0 +1,9 @@
+/* Hapus scrollbar tapi tetap bisa scroll */
+.no-scrollbar {
+  -ms-overflow-style: none; /* IE dan Edge */
+  scrollbar-width: none; /* Firefox */
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
