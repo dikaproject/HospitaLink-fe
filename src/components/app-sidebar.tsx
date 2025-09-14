@@ -176,8 +176,16 @@ const doctorData = {
       url: "/doctor/consultation",
       icon: MessageCircle,
       items: [
-        { title: "Chat Aktif", url: "/doctor/consultation" },
-        { title: "Menunggu Respons", url: "/doctor/consultation/pending" },
+        // { title: "Chat Aktif", url: "/doctor/consultation" },
+        // { title: "Menunggu Respons", url: "/doctor/consultation/pending" },
+        {
+          title: "Chat Konsultasi",
+          url: "/doctor/chat",
+        },
+        {
+          title: "Menunggu Respons",
+          url: "/doctor/chat/pending",
+        },
       ],
     },
   ],
