@@ -3,10 +3,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-// import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, User, Mail, Phone, MapPin, Stethoscope, Badge as BadgeIcon, DollarSign, Calendar, FileText } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Loader2, User, Mail, Phone, MapPin, Stethoscope, Badge as BadgeIcon, DollarSign, Calendar, FileText, Clock, Activity, Edit } from 'lucide-react';
 import { doctorService } from '@/services/admin/doctor';
 import type { Doctor } from '@/types/admin/doctor';
 
@@ -106,50 +105,71 @@ const DetailDoctorDialog: React.FC<DetailDoctorDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Detail Dokter</DialogTitle>
+      <DialogContent className="max-w-5xl max-h-[95vh] overflow-y-auto">
+        <DialogHeader className="pb-6">
+          <DialogTitle className="text-2xl font-bold">Detail Dokter</DialogTitle>
         </DialogHeader>
 
         {loading ? (
-          <div className="flex justify-center py-8">
-            <Loader2 className="h-8 w-8 animate-spin" />
+          <div className="flex justify-center items-center py-12">
+            <div className="text-center space-y-3">
+              <Loader2 className="h-12 w-12 animate-spin mx-auto text-primary" />
+              <p className="text-muted-foreground">Memuat detail dokter...</p>
+            </div>
           </div>
         ) : error ? (
-          <Alert variant="destructive">
+          <Alert variant="destructive" className="border-0 shadow-lg">
             <AlertDescription>{error}</AlertDescription>
           </Alert>
         ) : doctor ? (
           <div className="space-y-6">
-            {/* Profile Section */}
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex items-center space-x-4">
-                  <Avatar className="h-20 w-20">
-                    <AvatarImage src={doctor.profilePicture || undefined} />
-                    <AvatarFallback>
-                      <User className="h-10 w-10" />
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1">
-                    <h3 className="text-2xl font-bold">{doctor.fullName}</h3>
-                    <div className="flex gap-2 mt-2">
-                      <Badge variant="outline">
+            {/* Profile Header */}
+            <Card className="border-0 shadow-lg bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20">
+              <CardContent className="p-8">
+                <div className="flex flex-col md:flex-row items-start md:items-center space-y-4 md:space-y-0 md:space-x-6">
+                  <div className="relative">
+                    <Avatar className="h-24 w-24 border-4 border-white shadow-lg">
+                      <AvatarImage src={doctor.profilePicture || undefined} />
+                      <AvatarFallback className="text-2xl font-bold bg-gradient-to-r from-blue-500 to-purple-500 text-white">
+                        {doctor.fullName.charAt(0).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="absolute -bottom-2 -right-2 p-2 bg-green-500 rounded-full">
+                      <Activity className="h-4 w-4 text-white" />
+                    </div>
+                  </div>
+                  <div className="flex-1 space-y-3">
+                    <div>
+                      <h2 className="text-3xl font-bold text-gray-900 dark:text-white">
+                        {doctor.fullName}
+                      </h2>
+                      <p className="text-lg text-muted-foreground">
                         {doctor.doctorProfile?.specialty || 'Spesialisasi tidak tersedia'}
-                      </Badge>
-                      <Badge variant={doctor.isActive ? 'default' : 'destructive'}>
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <Badge 
+                        variant={doctor.isActive ? 'default' : 'destructive'}
+                        className="px-3 py-1"
+                      >
                         {doctor.isActive ? 'Aktif' : 'Nonaktif'}
                       </Badge>
-                    </div>
-                    <div className="flex gap-2 mt-2">
                       {doctor.doctorProfile?.isAvailable && (
-                        <Badge variant="secondary">Tersedia</Badge>
+                        <Badge variant="secondary" className="px-3 py-1">
+                          <Activity className="h-3 w-3 mr-1" />
+                          Tersedia
+                        </Badge>
                       )}
                       {doctor.doctorProfile?.isOnDuty && (
-                        <Badge variant="secondary">Sedang Bertugas</Badge>
+                        <Badge variant="secondary" className="px-3 py-1">
+                          <Clock className="h-3 w-3 mr-1" />
+                          Sedang Bertugas
+                        </Badge>
                       )}
                       {doctor.emailVerified && (
-                        <Badge variant="secondary">Email Terverifikasi</Badge>
+                        <Badge variant="secondary" className="px-3 py-1">
+                          Email Terverifikasi
+                        </Badge>
                       )}
                     </div>
                   </div>
@@ -157,88 +177,106 @@ const DetailDoctorDialog: React.FC<DetailDoctorDialogProps> = ({
               </CardContent>
             </Card>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Personal Information */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <User className="h-5 w-5" />
+              <Card className="border-0 shadow-lg">
+                <CardHeader className="pb-4">
+                  <CardTitle className="flex items-center gap-3 text-lg">
+                    <div className="p-2 bg-blue-100 dark:bg-blue-900/20 rounded-lg">
+                      <User className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                    </div>
                     Informasi Pribadi
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div>
-                    <p className="text-sm text-muted-foreground">NIK</p>
-                    <p className="font-medium">{doctor.nik || '-'}</p>
-                  </div>
-                  
-                  <div>
-                    <p className="text-sm text-muted-foreground">Jenis Kelamin</p>
-                    <p className="font-medium">{formatGender(doctor.gender)}</p>
-                  </div>
-                  
-                  <div>
-                    <p className="text-sm text-muted-foreground">Tanggal Lahir</p>
-                    <p className="font-medium">{formatDate(doctor.dateOfBirth)}</p>
-                  </div>
-                  
-                  <div className="flex items-center gap-2">
-                    <Mail className="h-4 w-4 text-muted-foreground" />
-                    <div>
-                      <p className="text-sm text-muted-foreground">Email</p>
-                      <p className="font-medium">{doctor.email}</p>
+                  <div className="grid grid-cols-1 gap-4">
+                    <div className="flex items-center p-3 rounded-lg bg-slate-50 dark:bg-slate-800">
+                      <div className="flex-1">
+                        <p className="text-sm text-muted-foreground mb-1">NIK</p>
+                        <p className="font-medium">{doctor.nik || '-'}</p>
+                      </div>
                     </div>
-                  </div>
-                  
-                  <div className="flex items-center gap-2">
-                    <Phone className="h-4 w-4 text-muted-foreground" />
-                    <div>
-                      <p className="text-sm text-muted-foreground">Telepon</p>
-                      <p className="font-medium">{doctor.phone || '-'}</p>
+                    
+                    <div className="flex items-center p-3 rounded-lg bg-slate-50 dark:bg-slate-800">
+                      <div className="flex-1">
+                        <p className="text-sm text-muted-foreground mb-1">Jenis Kelamin</p>
+                        <p className="font-medium">{formatGender(doctor.gender)}</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center p-3 rounded-lg bg-slate-50 dark:bg-slate-800">
+                      <div className="flex-1">
+                        <p className="text-sm text-muted-foreground mb-1">Tanggal Lahir</p>
+                        <p className="font-medium">{formatDate(doctor.dateOfBirth)}</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center p-3 rounded-lg bg-slate-50 dark:bg-slate-800">
+                      <Mail className="h-4 w-4 text-blue-500 mr-3" />
+                      <div className="flex-1">
+                        <p className="text-sm text-muted-foreground mb-1">Email</p>
+                        <p className="font-medium">{doctor.email}</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center p-3 rounded-lg bg-slate-50 dark:bg-slate-800">
+                      <Phone className="h-4 w-4 text-green-500 mr-3" />
+                      <div className="flex-1">
+                        <p className="text-sm text-muted-foreground mb-1">Telepon</p>
+                        <p className="font-medium">{doctor.phone || '-'}</p>
+                      </div>
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
               {/* Professional Information */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Stethoscope className="h-5 w-5" />
+              <Card className="border-0 shadow-lg">
+                <CardHeader className="pb-4">
+                  <CardTitle className="flex items-center gap-3 text-lg">
+                    <div className="p-2 bg-green-100 dark:bg-green-900/20 rounded-lg">
+                      <Stethoscope className="h-5 w-5 text-green-600 dark:text-green-400" />
+                    </div>
                     Informasi Profesi
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="flex items-center gap-2">
-                    <BadgeIcon className="h-4 w-4 text-muted-foreground" />
-                    <div>
-                      <p className="text-sm text-muted-foreground">Nomor Lisensi</p>
-                      <p className="font-medium">{doctor.doctorProfile?.licenseNumber || '-'}</p>
+                  <div className="grid grid-cols-1 gap-4">
+                    <div className="flex items-center p-3 rounded-lg bg-slate-50 dark:bg-slate-800">
+                      <BadgeIcon className="h-4 w-4 text-purple-500 mr-3" />
+                      <div className="flex-1">
+                        <p className="text-sm text-muted-foreground mb-1">Nomor Lisensi</p>
+                        <p className="font-medium">{doctor.doctorProfile?.licenseNumber || '-'}</p>
+                      </div>
                     </div>
-                  </div>
-                  
-                  <div>
-                    <p className="text-sm text-muted-foreground">Spesialisasi</p>
-                    <p className="font-medium">{doctor.doctorProfile?.specialty || '-'}</p>
-                  </div>
-                  
-                  <div className="flex items-center gap-2">
-                    <DollarSign className="h-4 w-4 text-muted-foreground" />
-                    <div>
-                      <p className="text-sm text-muted-foreground">Biaya Konsultasi</p>
-                      <p className="font-medium">{formatCurrency(doctor.doctorProfile?.consultationFee)}</p>
+                    
+                    <div className="flex items-center p-3 rounded-lg bg-slate-50 dark:bg-slate-800">
+                      <div className="flex-1">
+                        <p className="text-sm text-muted-foreground mb-1">Spesialisasi</p>
+                        <p className="font-medium">{doctor.doctorProfile?.specialty || '-'}</p>
+                      </div>
                     </div>
-                  </div>
-                  
-                  <div>
-                    <p className="text-sm text-muted-foreground">Status Ketersediaan</p>
-                    <div className="flex gap-2 mt-1">
-                      <Badge variant={doctor.doctorProfile?.isAvailable ? 'default' : 'destructive'}>
-                        {doctor.doctorProfile?.isAvailable ? 'Tersedia' : 'Tidak Tersedia'}
-                      </Badge>
-                      <Badge variant={doctor.doctorProfile?.isOnDuty ? 'secondary' : 'outline'}>
-                        {doctor.doctorProfile?.isOnDuty ? 'Bertugas' : 'Tidak Bertugas'}
-                      </Badge>
+                    
+                    <div className="flex items-center p-3 rounded-lg bg-slate-50 dark:bg-slate-800">
+                      <DollarSign className="h-4 w-4 text-amber-500 mr-3" />
+                      <div className="flex-1">
+                        <p className="text-sm text-muted-foreground mb-1">Biaya Konsultasi</p>
+                        <p className="font-medium text-lg text-green-600">
+                          {formatCurrency(doctor.doctorProfile?.consultationFee)}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800">
+                      <p className="text-sm text-muted-foreground mb-2">Status Ketersediaan</p>
+                      <div className="flex flex-wrap gap-2">
+                        <Badge variant={doctor.doctorProfile?.isAvailable ? 'default' : 'destructive'}>
+                          {doctor.doctorProfile?.isAvailable ? 'Tersedia' : 'Tidak Tersedia'}
+                        </Badge>
+                        <Badge variant={doctor.doctorProfile?.isOnDuty ? 'secondary' : 'outline'}>
+                          {doctor.doctorProfile?.isOnDuty ? 'Sedang Bertugas' : 'Tidak Bertugas'}
+                        </Badge>
+                      </div>
                     </div>
                   </div>
                 </CardContent>
@@ -246,39 +284,45 @@ const DetailDoctorDialog: React.FC<DetailDoctorDialogProps> = ({
             </div>
 
             {/* Address Information */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <MapPin className="h-5 w-5" />
-                  Alamat
+            <Card className="border-0 shadow-lg">
+              <CardHeader className="pb-4">
+                <CardTitle className="flex items-center gap-3 text-lg">
+                  <div className="p-2 bg-red-100 dark:bg-red-900/20 rounded-lg">
+                    <MapPin className="h-5 w-5 text-red-600 dark:text-red-400" />
+                  </div>
+                  Alamat Lengkap
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p>{getFullAddress()}</p>
+                <div className="p-4 rounded-lg bg-slate-50 dark:bg-slate-800">
+                  <p className="text-sm leading-relaxed">{getFullAddress()}</p>
+                </div>
               </CardContent>
             </Card>
 
-            {/* Bio & Schedule */}
+            {/* Bio & Additional Info */}
             {(doctor.doctorProfile?.bio || doctor.doctorProfile?.schedule) && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <FileText className="h-5 w-5" />
+              <Card className="border-0 shadow-lg">
+                <CardHeader className="pb-4">
+                  <CardTitle className="flex items-center gap-3 text-lg">
+                    <div className="p-2 bg-amber-100 dark:bg-amber-900/20 rounded-lg">
+                      <FileText className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                    </div>
                     Informasi Tambahan
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {doctor.doctorProfile?.bio && (
-                    <div>
-                      <p className="text-sm text-muted-foreground mb-2">Biografi</p>
-                      <p>{doctor.doctorProfile.bio}</p>
+                    <div className="p-4 rounded-lg bg-slate-50 dark:bg-slate-800">
+                      <p className="text-sm text-muted-foreground mb-2 font-medium">Biografi</p>
+                      <p className="text-sm leading-relaxed">{doctor.doctorProfile.bio}</p>
                     </div>
                   )}
                   
                   {doctor.doctorProfile?.schedule && (
-                    <div>
-                      <p className="text-sm text-muted-foreground mb-2">Jadwal Praktik</p>
-                      <pre className="text-sm whitespace-pre-wrap">
+                    <div className="p-4 rounded-lg bg-slate-50 dark:bg-slate-800">
+                      <p className="text-sm text-muted-foreground mb-2 font-medium">Jadwal Praktik</p>
+                      <pre className="text-xs bg-white dark:bg-slate-900 p-3 rounded border overflow-x-auto">
                         {JSON.stringify(doctor.doctorProfile.schedule, null, 2)}
                       </pre>
                     </div>
@@ -287,38 +331,45 @@ const DetailDoctorDialog: React.FC<DetailDoctorDialogProps> = ({
               </Card>
             )}
 
-            {/* Metadata */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Calendar className="h-5 w-5" />
+            {/* System Information */}
+            <Card className="border-0 shadow-lg">
+              <CardHeader className="pb-4">
+                <CardTitle className="flex items-center gap-3 text-lg">
+                  <div className="p-2 bg-slate-100 dark:bg-slate-800 rounded-lg">
+                    <Calendar className="h-5 w-5 text-slate-600 dark:text-slate-400" />
+                  </div>
                   Informasi Sistem
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Tanggal Bergabung</p>
+                  <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800">
+                    <p className="text-sm text-muted-foreground mb-1">Tanggal Bergabung</p>
                     <p className="font-medium">{formatDate(doctor.createdAt)}</p>
                   </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Terakhir Diupdate</p>
+                  <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800">
+                    <p className="text-sm text-muted-foreground mb-1">Terakhir Diupdate</p>
                     <p className="font-medium">{formatDate(doctor.updatedAt)}</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Actions */}
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={onClose}>
+            {/* Action Buttons */}
+            <div className="flex justify-end gap-3 pt-4 border-t">
+              <Button variant="outline" onClick={onClose} size="lg">
                 Tutup
               </Button>
-              <Button onClick={() => {
-                // TODO: Handle edit doctor
-                console.log('Edit doctor:', doctor.id);
-              }}>
-                Edit
+              <Button 
+                onClick={() => {
+                  // TODO: Handle edit doctor
+                  console.log('Edit doctor:', doctor.id);
+                }} 
+                size="lg"
+                className="shadow-lg"
+              >
+                <Edit className="mr-2 h-4 w-4" />
+                Edit Data
               </Button>
             </div>
           </div>
