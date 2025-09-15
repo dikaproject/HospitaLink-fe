@@ -5,14 +5,20 @@ import {
     type PatientListResponse,
     type PatientDetailResponse,
     type PatientStats,
-    type PatientServiceResponse
+    type PatientCreate,
+    type PatientCreateResponse,
+    type PatientUpdate,
+    type PatientUpdateResponse,
+    type PatientDeleteResponse,
+    type ApiSuccessResponse,
+    type ApiErrorResponse
 } from "@/types/admin/patient"
 
 // API Configuration
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
 const API_PREFIX = '/api/web/admin/patients'
 
-// Create axios instance
+// Create axios instance8
 const apiClient = axios.create({
     baseURL: API_BASE_URL,
     timeout: 15000,
@@ -110,6 +116,15 @@ const buildQueryString = (params: PatientSearchQuery): string => {
     return queryParams.toString()
 }
 
+// Add type guard functions
+const isSuccessResponse = <T>(response: any): response is ApiSuccessResponse<T> => {
+    return response.success === true && response.data !== undefined
+}
+
+const isErrorResponse = (response: any): response is ApiErrorResponse => {
+    return response.success === false && typeof response.error === 'string'
+}
+
 // Patient Service - Fixed response handling
 export const patientService = {
     // Get all patients with pagination and filtering
@@ -127,8 +142,7 @@ export const patientService = {
             }
 
             if (response.data.success) {
-                // Fixed: Properly handle the response structure
-                const result: PatientListResponse = {
+                return {
                     success: true,
                     data: {
                         patients: response.data.data?.patients || [],
@@ -143,10 +157,7 @@ export const patientService = {
                     },
                     message: response.data.message || 'Patients retrieved successfully'
                 }
-                
-                return result
             } else {
-                // Fixed: Error response handling
                 return {
                     success: false,
                     error: response.data.error || response.data.message || 'Failed to fetch patients',
@@ -242,8 +253,8 @@ export const patientService = {
         }
     },
 
-    // Get patient statistics - Fixed response handling
-    getStats: async (): Promise<PatientServiceResponse<PatientStats>> => {
+    // Get patient statistics
+    getStats: async (): Promise<ApiSuccessResponse<PatientStats> | ApiErrorResponse> => {
         try {
             console.log('📊 Fetching patient statistics from:', `${API_PREFIX}/stats`)
 
@@ -275,6 +286,172 @@ export const patientService = {
                 message: 'Failed to fetch statistics'
             }
         }
+    },
+
+    // Fixed create method with better error handling
+    create: async (patientData: PatientCreate): Promise<PatientCreateResponse> => {
+        try {
+            if (!patientData.email || !patientData.password || !patientData.fullName) {
+                return {
+                    success: false,
+                    error: 'Missing required fields',
+                    message: 'Email, password, and full name are required'
+                }
+            }
+
+            console.log('📝 Creating new patient:', { 
+                email: patientData.email, 
+                fullName: patientData.fullName,
+                hasPassword: !!patientData.password,
+                nik: patientData.nik,
+                phone: patientData.phone
+            })
+
+            const response = await apiClient.post(API_PREFIX, patientData)
+
+            if (!response.data) {
+                throw new Error('Invalid response from server')
+            }
+
+            if (response.data.success) {
+                return {
+                    success: true,
+                    data: {
+                        patient: response.data.data?.patient
+                    },
+                    message: response.data.message || 'Patient created successfully'
+                }
+            } else {
+                return {
+                    success: false,
+                    error: response.data.error || response.data.message || 'Failed to create patient',
+                    message: response.data.message || 'Failed to create patient'
+                }
+            }
+        } catch (error: unknown) {
+            console.error('❌ Error creating patient:', error)
+            
+            // Better error handling for different error types
+            let errorMessage = 'Failed to create patient';
+            let specificError = 'Unknown error';
+
+            if (axios.isAxiosError(error)) {
+                if (error.response?.status === 400) {
+                    // Validation errors
+                    const validationErrors = error.response.data?.errors;
+                    if (validationErrors && Array.isArray(validationErrors)) {
+                        specificError = validationErrors.map((e: any) => e.msg).join(', ');
+                        errorMessage = 'Validation failed';
+                    } else {
+                        specificError = error.response.data?.message || error.response.data?.error || 'Bad request';
+                    }
+                } else if (error.response?.status === 409) {
+                    // Conflict errors (duplicate email/NIK)
+                    specificError = error.response.data?.message || error.response.data?.error || 'Data already exists';
+                    errorMessage = 'Conflict error';
+                } else {
+                    specificError = error.response?.data?.message || error.response?.data?.error || error.message || 'Network error';
+                }
+            } else if (error instanceof Error) {
+                specificError = error.message;
+            }
+            
+            return {
+                success: false,
+                error: specificError,
+                message: errorMessage
+            }
+        }
+    },
+
+    // Fixed update method
+    update: async (id: string, patientData: Partial<PatientUpdate>): Promise<PatientUpdateResponse> => {
+        try {
+            if (!id?.trim()) {
+                return {
+                    success: false,
+                    error: 'Invalid patient ID',
+                    message: 'Patient ID is required'
+                }
+            }
+
+            console.log('📝 Updating patient:', id)
+
+            const response = await apiClient.put(`${API_PREFIX}/${id.trim()}`, patientData)
+
+            if (!response.data) {
+                throw new Error('Invalid response from server')
+            }
+
+            if (response.data.success) {
+                return {
+                    success: true,
+                    data: {
+                        patient: response.data.data?.patient
+                    },
+                    message: response.data.message || 'Patient updated successfully'
+                }
+            } else {
+                return {
+                    success: false,
+                    error: response.data.error || response.data.message || 'Failed to update patient',
+                    message: response.data.message || 'Failed to update patient'
+                }
+            }
+        } catch (error: unknown) {
+            console.error('❌ Error updating patient:', error)
+            
+            return {
+                success: false,
+                error: handleApiError(error),
+                message: 'Failed to update patient'
+            }
+        }
+    },
+
+    // Fixed delete method
+    delete: async (id: string): Promise<PatientDeleteResponse> => {
+        try {
+            if (!id?.trim()) {
+                return {
+                    success: false,
+                    error: 'Invalid patient ID',
+                    message: 'Patient ID is required'
+                }
+            }
+
+            console.log('🗑️ Deleting patient:', id)
+
+            const response = await apiClient.delete(`${API_PREFIX}/${id.trim()}`)
+
+            if (!response.data) {
+                throw new Error('Invalid response from server')
+            }
+
+            if (response.data.success) {
+                return {
+                    success: true,
+                    data: {
+                        patientId: response.data.data?.patientId || id
+                    },
+                    message: response.data.message || 'Patient deleted successfully'
+                }
+            } else {
+                return {
+                    success: false,
+                    error: response.data.error || response.data.message || 'Failed to delete patient',
+                    message: response.data.message || 'Failed to delete patient'
+                }
+            }
+        } catch (error: unknown) {
+            console.error('❌ Error deleting patient:', error)
+            
+            return {
+                success: false,
+                error: handleApiError(error),
+                message: 'Failed to delete patient'
+            }
+        }
     }
 }
 
@@ -283,5 +460,12 @@ export type {
     PatientSearchQuery,
     PatientListResponse,
     PatientDetailResponse,
-    PatientStats
+    PatientStats,
+    PatientCreate,
+    PatientUpdate,
+    PatientCreateResponse,
+    PatientUpdateResponse,
+    PatientDeleteResponse,
+    ApiSuccessResponse,
+    ApiErrorResponse
 }
