@@ -98,22 +98,10 @@ const adminData = {
       url: "/consultation",
       icon: MessageCircle,
       items: [
-        { title: "Monitor Chat", url: "/consultation/monitor" },
-        { title: "AI Triage Results", url: "/consultation/ai-results" },
         { title: "Riwayat Konsultasi", url: "/consultation/history" },
       ],
     },
-    {
-      title: "Laporan & Analytics",
-      url: "/reports",
-      icon: PieChart,
-      items: [
-        { title: "Dashboard Analytics", url: "/chart" },
-        { title: "Laporan Harian", url: "/reports/daily" },
-        { title: "Laporan Bulanan", url: "/reports/monthly" },
-        { title: "Performa Dokter", url: "/reports/doctors" },
-      ],
-    },
+
   ],
   projects: [
     { name: "Registrasi Cepat", url: "/patient/quick-register", icon: UserPlus },

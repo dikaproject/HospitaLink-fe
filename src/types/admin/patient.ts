@@ -274,22 +274,35 @@ export interface PatientFormValues {
   province?: string
 }
 
-// Create type extends PatientFormValues but makes password required
-export interface PatientCreate extends Required<Pick<PatientFormValues, 'email' | 'password' | 'fullName'>> {
-  phone?: string
-  nik?: string
-  gender?: Gender
-  dateOfBirth?: string
-  street?: string
-  village?: string
-  district?: string
-  regency?: string
-  province?: string
+// Create type - make sure it matches backend expectations
+export interface PatientCreate {
+  email: string           // Required
+  password: string        // Required - must meet complexity requirements
+  fullName: string        // Required - only letters, spaces, dots, hyphens
+  phone?: string | null   // Optional - Indonesian format: 08xxxxxxxxx
+  nik?: string | null     // Optional - exactly 16 digits
+  gender?: Gender | null  // Optional - MALE or FEMALE
+  dateOfBirth?: string | null // Optional - ISO date string (backend converts to DateTime)
+  street?: string | null  // Optional - max 200 chars
+  village?: string | null // Optional - max 100 chars
+  district?: string | null // Optional - max 100 chars
+  regency?: string | null  // Optional - max 100 chars
+  province?: string | null // Optional - max 100 chars
 }
 
 // Update type - password not needed for updates
-export interface PatientUpdate extends Partial<Omit<PatientFormValues, 'password'>> {
-  id: string
+export interface PatientUpdate {
+  fullName?: string
+  phone?: string | null
+  nik?: string | null
+  gender?: Gender | null
+  dateOfBirth?: string | null
+  street?: string | null
+  village?: string | null
+  district?: string | null
+  regency?: string | null
+  province?: string | null
+  isActive?: boolean
 }
 
 // API Query types
@@ -315,9 +328,9 @@ export interface PatientFilterOptions {
 }
 
 // API Response types - Fixed to handle both success and error states
-export interface ApiResponse<T> {
-  success: boolean
-  data?: T
+export interface ApiSuccessResponse<T> {
+  success: true
+  data: T
   message?: string
 }
 
@@ -327,90 +340,13 @@ export interface ApiErrorResponse {
   message?: string
 }
 
-export interface PaginationInfo {
-  currentPage: number
-  totalPages: number
-  totalRecords: number
-  hasNextPage: boolean
-  hasPrevPage: boolean
-  limit: number
-}
+// Update response types to use union properly
+export type PatientCreateResponse = ApiSuccessResponse<{ patient: Patient }> | ApiErrorResponse
+export type PatientUpdateResponse = ApiSuccessResponse<{ patient: Patient }> | ApiErrorResponse
+export type PatientDeleteResponse = ApiSuccessResponse<{ patientId: string }> | ApiErrorResponse
 
-// Fixed PaginatedResponse to handle both success and error
-export interface PaginatedSuccessResponse<T> {
-  success: true
-  data: {
-    patients: T[]
-    pagination: PaginationInfo
-  }
-  message?: string
-}
-
-export interface PaginatedErrorResponse {
-  success: false
-  error: string
-  message?: string
-  data: {
-    patients: never[]
-    pagination: PaginationInfo
-  }
-}
-
-export type PaginatedResponse<T> = PaginatedSuccessResponse<T> | PaginatedErrorResponse
-
-// Specific response types
-export type PatientDetailResponse = {
-  success: true
-  data: {
-    patient: Patient
-    summary: {
-      totalAppointments: number
-      completedAppointments: number
-      totalConsultations: number
-      totalMedicalRecords: number
-      totalLabResults: number
-      totalPrescriptions: number
-      unreadNotifications: number
-      lastVisit?: string | null
-      lastAppointment?: string | null
-    }
-  }
-  message?: string
-} | {
-  success: false
-  error: string
-  message?: string
-}
-
-// Service Response types
-export type PatientServiceResponse<T> = {
-  success: true
-  data: T
-  message?: string
-} | {
-  success: false
-  error: string
-  message?: string
-}
-export type PatientListResponse = {
-  success: true
-  data: {
-    patients: Patient[]
-    pagination: PaginationInfo
-  }
-  message?: string
-} | {
-  success: false
-  error: string
-  message?: string
-  data: {
-    patients: Patient[]
-    pagination: PaginationInfo
-  }
-}
-export type PatientCreateResponse = ApiResponse<{ patient: Patient }> | ApiErrorResponse
-export type PatientUpdateResponse = ApiResponse<{ patient: Patient }> | ApiErrorResponse
-export type PatientDeleteResponse = ApiResponse<{ patientId: string }> | ApiErrorResponse
+// Also fix the general ApiResponse type
+export type ApiResponse<T> = ApiSuccessResponse<T> | ApiErrorResponse
 
 // Statistics types
 export interface PatientStats {
@@ -426,3 +362,56 @@ export interface PatientStats {
 
 // List item type for table views
 export type PatientListItem = Pick<Patient, 'id' | 'fullName' | 'email' | 'nik' | 'gender' | 'phone' | 'isActive' | 'createdAt'>
+
+// Pagination interface
+export interface PaginationInfo {
+  currentPage: number
+  totalPages: number
+  totalRecords: number
+  hasNextPage: boolean
+  hasPrevPage: boolean
+  limit: number
+}
+
+// Patient summary for detailed view
+export interface PatientSummary {
+  totalAppointments: number
+  completedAppointments: number
+  totalConsultations: number
+  totalMedicalRecords: number
+  totalLabResults: number
+  totalPrescriptions: number
+  unreadNotifications: number
+  lastVisit?: string | null
+  lastAppointment?: string | null
+}
+
+// List response type
+export interface PatientListResponse {
+  success: boolean
+  data: {
+    patients: Patient[]
+    pagination: PaginationInfo
+  }
+  message?: string
+  error?: string
+}
+
+// Detail response type
+export interface PatientDetailResponse {
+  success: boolean
+  data?: {
+    patient: Patient
+    summary: PatientSummary
+  }
+  message?: string
+  error?: string
+}
+
+// Service response type (for stats)
+export interface PatientServiceResponse<T> {
+  success: boolean
+  data?: T
+  message?: string
+  error?: string
+}

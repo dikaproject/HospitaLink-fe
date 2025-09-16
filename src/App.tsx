@@ -5,6 +5,9 @@ import Dashboard from "@/pages/dashboard"
 import Patient from "@/pages/admin/patien"
 import Doctor from "@/pages/admin/doctor"
 import Queue from "@/pages/admin/queue"
+import PatientCard from "@/pages/admin/patient-card"
+import RegisterPatient from "@/pages/admin/register-patient"
+import PaymentPrescription from "@/pages/admin/prescription"
 import Chart from "@/pages/chart"
 
 // Doctor pages
@@ -34,6 +37,9 @@ function App() {
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/patient" element={<Patient />} />
           <Route path="/queue" element={<Queue />} />
+          <Route path="/patient/cards" element={<PatientCard />} />
+          <Route path="/patient/register" element={<RegisterPatient />} />
+          <Route path="/pharmacy/prescriptions" element={<PaymentPrescription />} />
           <Route path="/doctor" element={<Doctor />} />
           <Route path="/chart" element={<Chart />} />
           
