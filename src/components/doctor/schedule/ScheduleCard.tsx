@@ -83,7 +83,8 @@ export function ScheduleCard({ schedule, onClick, showDate = true }: ScheduleCar
               {schedule.status === 'UPCOMING' ? 'Akan Datang' :
                schedule.status === 'ONGOING' ? 'Berlangsung' :
                schedule.status === 'COMPLETED' ? 'Selesai' :
-               schedule.status === 'CANCELLED' ? 'Dibatalkan' : 'Unknown'}
+               schedule.status === 'CANCELLED' ? 'Dibatalkan' :
+               schedule.status === 'SCHEDULED' ? 'Dijadwalkan' : 'Unknown'}
             </span>
           </Badge>
         </div>

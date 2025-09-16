@@ -294,7 +294,7 @@ function DoctorDashboard({ stats, user, onRefresh }: { stats: DashboardStats, us
 
             {/* Doctor specific content */}
             <section className="grid gap-4 md:grid-cols-3">
-                <Card className="border-border">
+                                <Card className="border-border">
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2 text-foreground">
                             <UserPlus className="h-5 w-5" />
@@ -303,7 +303,10 @@ function DoctorDashboard({ stats, user, onRefresh }: { stats: DashboardStats, us
                         <CardDescription>Panggil pasien dan kelola antrian</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <Button className="w-full">
+                        <Button 
+                            className="w-full"
+                            onClick={() => window.location.href = '/doctor/queue'}
+                        >
                             Buka Antrian
                         </Button>
                     </CardContent>
@@ -318,7 +321,7 @@ function DoctorDashboard({ stats, user, onRefresh }: { stats: DashboardStats, us
                         <CardDescription>Balas chat konsultasi dari pasien</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <Button className="w-full" variant="outline">
+                        <Button className="w-full" variant="outline" onClick={() => window.location.href = '/doctor/chat'}>
                             Lihat Chat ({stats.pendingConsultations || 0})
                         </Button>
                     </CardContent>
@@ -328,12 +331,12 @@ function DoctorDashboard({ stats, user, onRefresh }: { stats: DashboardStats, us
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2 text-foreground">
                             <Calendar className="h-5 w-5" />
-                            Jadwal Appointment
+                            Jadwal Praktik
                         </CardTitle>
-                        <CardDescription>Kelola jadwal appointment pasien</CardDescription>
+                        <CardDescription>Kelola jadwal Praktik pasien</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <Button className="w-full" variant="outline">
+                        <Button className="w-full" variant="outline" onClick={() => window.location.href = '/doctor/schedule'}>
                             Lihat Jadwal
                         </Button>
                     </CardContent>
