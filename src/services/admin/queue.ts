@@ -81,6 +81,46 @@ export const queueService = {
     const response = await api.get(`/api/web/admin/queue/analytics?${params}`);
     return response.data;
   },
+
+  // Call patient (change status from WAITING to CALLED)
+  callPatient: async (queueId: string): Promise<{ success: boolean; message: string; data?: any }> => {
+    try {
+      const response = await api.patch(`/api/web/admin/queue/${queueId}/call`);
+      return response.data;
+    } catch (error: any) {
+      throw error;
+    }
+  },
+
+  // Start consultation (change status from CALLED to IN_PROGRESS)
+  startConsultation: async (queueId: string): Promise<{ success: boolean; message: string; data?: any }> => {
+    try {
+      const response = await api.patch(`/api/web/admin/queue/${queueId}/start`);
+      return response.data;
+    } catch (error: any) {
+      throw error;
+    }
+  },
+
+  // Complete consultation (change status to COMPLETED)
+  completeConsultation: async (queueId: string, notes?: string): Promise<{ success: boolean; message: string; data?: any }> => {
+    try {
+      const response = await api.patch(`/api/web/admin/queue/${queueId}/complete`, { notes });
+      return response.data;
+    } catch (error: any) {
+      throw error;
+    }
+  },
+
+  // Cancel queue (change status to CANCELLED)
+  cancelQueue: async (queueId: string, reason?: string): Promise<{ success: boolean; message: string; data?: any }> => {
+    try {
+      const response = await api.patch(`/api/web/admin/queue/${queueId}/cancel`, { reason });
+      return response.data;
+    } catch (error: any) {
+      throw error;
+    }
+  },
 };
 
 export default queueService;

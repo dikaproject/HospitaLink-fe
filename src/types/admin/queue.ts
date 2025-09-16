@@ -55,10 +55,12 @@ export interface Prescription {
   expiresAt: string | null;
 }
 
+export type QueueStatus = 'WAITING' | 'CALLED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
+
 export interface Queue {
   id: string;
   queueNumber: string;
-  status: 'WAITING' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
+  status: QueueStatus;
   position: number;
   estimatedWaitTime?: number | null;
   checkInTime: string;
@@ -78,13 +80,15 @@ export interface Queue {
 export interface QueueListItem {
   id: string;
   queueNumber: string;
-  status: 'WAITING' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
+  status: QueueStatus;
   position: number;
   queueDate: string;
   checkInTime: string;
   calledTime?: string | null;
   completedTime?: string | null;
+  estimatedWaitTime?: number | null;
   isPriority: boolean;
+  notes?: string | null;
   user: {
     id: string;
     fullName: string;
@@ -107,6 +111,7 @@ export interface QueueListItem {
 export interface QueueStatistics {
   total: number;
   waiting: number;
+  called?: number;
   inProgress: number;
   completed: number;
   cancelled: number;
