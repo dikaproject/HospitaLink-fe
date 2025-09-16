@@ -59,6 +59,30 @@ class PatientCardService {
       throw error;
     }
   }
+
+  async downloadCard(id: string): Promise<Blob> {
+    try {
+      const response = await api.get(`/api/web/admin/cards/${id}/download`, {
+        responseType: 'blob', // Important for PDF download
+      });
+      return response.data;
+    } catch (error: any) {
+      console.error('Download service error:', error);
+      throw error;
+    }
+  }
+
+  // Helper method to trigger download in browser
+  downloadPdfFile(blob: Blob, filename: string) {
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  }
 }
 
 export const patientCardService = new PatientCardService();

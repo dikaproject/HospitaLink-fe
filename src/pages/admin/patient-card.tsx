@@ -16,8 +16,9 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select"
-import { CreditCard, Search, Download, Printer } from "lucide-react" // Added Print import
+import { CreditCard, Search, Download, Printer } from "lucide-react"
 import PatientCard from "@/components/admin/patient-card/PatientCard"
+import PatientCardDetailDialog from "@/components/admin/patient-card/PatientCardDetailDialog"
 import { patientCardService, type PatientCardPagination } from "@/services/admin/patientCard"
 import type { Patient } from "@/types/admin/patientCard"
 
@@ -26,6 +27,11 @@ function PatientCardPage() {
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
 
+    // Dialog states
+    const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null)
+    const [detailDialogOpen, setDetailDialogOpen] = useState(false)
+    const [downloadingCardId, setDownloadingCardId] = useState<string | null>(null)
+
     // Filter states
     const [searchQuery, setSearchQuery] = useState("")
     const [genderFilter, setGenderFilter] = useState<"ALL" | "MALE" | "FEMALE">("ALL")
@@ -33,7 +39,7 @@ function PatientCardPage() {
 
     // Pagination states
     const [currentPage, setCurrentPage] = useState(1)
-    const [pageSize] = useState(50) // Fixed size for cards
+    const [pageSize] = useState(50)
     const [pagination, setPagination] = useState<PatientCardPagination>({
         currentPage: 1,
         totalPages: 0,
@@ -43,7 +49,7 @@ function PatientCardPage() {
         hasPrev: false
     })
 
-    // Stats (calculated from all data for display)
+    // Stats
     const [stats, setStats] = useState({
         total: 0,
         active: 0,
@@ -161,15 +167,35 @@ function PatientCardPage() {
         }
     }, [searchQuery, genderFilter, statusFilter])
 
-    // Handle card click
+    // Handle card click - show detail dialog
     const handleCardClick = async (patient: Patient) => {
         try {
             const response = await patientCardService.getCardById(patient.id)
-            console.log('Patient card detail:', response.data)
-            // Implement detail view or actions here
-            // You could open a modal or navigate to detail page
+            if (response.success) {
+                setSelectedPatient(response.data)
+                setDetailDialogOpen(true)
+            } else {
+                console.error('Error fetching patient detail:', response.message)
+                alert('Gagal memuat detail pasien')
+            }
         } catch (error) {
             console.error('Error fetching patient detail:', error)
+            alert('Gagal memuat detail pasien')
+        }
+    }
+
+    // Handle download card
+    const handleDownloadCard = async (patient: Patient) => {
+        try {
+            setDownloadingCardId(patient.id)
+            const blob = await patientCardService.downloadCard(patient.id)
+            const filename = `kartu-pasien-${patient.fullName.replace(/\s+/g, '-')}-${Date.now()}.pdf`
+            patientCardService.downloadPdfFile(blob, filename)
+        } catch (error) {
+            console.error('Error downloading patient card:', error)
+            alert('Gagal mengunduh kartu pasien. Silakan coba lagi.')
+        } finally {
+            setDownloadingCardId(null)
         }
     }
 
@@ -436,16 +462,16 @@ function PatientCardPage() {
                             </div>
                         </div>
                     ) : (
-                        <div className="grid grid-cols-2 gap-6">
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                             {patients.map((patient) => (
                                 <PatientCard
                                     key={patient.id}
                                     patient={patient}
                                     onClick={() => handleCardClick(patient)}
+                                    onDownload={() => handleDownloadCard(patient)}
                                 />
                             ))}
                         </div>
-
                     )}
                 </CardContent>
             </Card>
@@ -530,6 +556,13 @@ function PatientCardPage() {
                     </div>
                 </Card>
             )}
+
+            {/* Detail Dialog */}
+            <PatientCardDetailDialog
+                patient={selectedPatient}
+                open={detailDialogOpen}
+                onOpenChange={setDetailDialogOpen}
+            />
         </div>
     )
 }

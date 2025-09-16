@@ -4,6 +4,7 @@ import Layout from "@/components/layout"
 import Dashboard from "@/pages/dashboard"
 import Patient from "@/pages/admin/patien"
 import Doctor from "@/pages/admin/doctor"
+import DoctorAttendance from "@/pages/admin/doctor-attendance"
 import Queue from "@/pages/admin/queue"
 import PatientCard from "@/pages/admin/patient-card"
 import RegisterPatient from "@/pages/admin/register-patient"
@@ -41,6 +42,7 @@ function App() {
           <Route path="/patient/register" element={<RegisterPatient />} />
           <Route path="/pharmacy/prescriptions" element={<PaymentPrescription />} />
           <Route path="/doctor" element={<Doctor />} />
+          <Route path="/doctor/attendance" element={<DoctorAttendance />} />
           <Route path="/chart" element={<Chart />} />
           
           {/* Doctor routes */}

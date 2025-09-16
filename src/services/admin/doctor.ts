@@ -5,6 +5,7 @@ import type {
   DoctorSearchResponse,
   CreateDoctorData,
   UpdateDoctorData,
+  DoctorAttendanceResponse,
 } from '@/types/admin/doctor';
 
 export const doctorService = {
@@ -51,6 +52,42 @@ export const doctorService = {
   // Delete/deactivate doctor
   deleteDoctor: async (id: string) => {
     const response = await api.delete(`/api/web/admin/doctors/${id}`);
+    return response.data;
+  },
+
+  // Get doctors attendance (who are on duty/available)
+  getDoctorsAttendance: async (
+    page: number = 1,
+    limit: number = 50,
+    search: string = '',
+    specialty: string = 'ALL',
+    status: 'ALL' | 'ON_DUTY' | 'AVAILABLE' | 'OFFLINE' = 'ALL'
+  ): Promise<DoctorAttendanceResponse> => {
+    const params = new URLSearchParams({
+      page: page.toString(),
+      limit: limit.toString(),
+      ...(search && { search }),
+      ...(specialty !== 'ALL' && { specialty }),
+      ...(status !== 'ALL' && { status }),
+    });
+
+    const response = await api.get(`/api/web/admin/doctors/attendance?${params}`);
+    return response.data;
+  },
+
+  // Update doctor duty status
+  updateDoctorDutyStatus: async (id: string, isOnDuty: boolean) => {
+    const response = await api.patch(`/api/web/admin/doctors/${id}/duty-status`, {
+      isOnDuty
+    });
+    return response.data;
+  },
+
+  // Update doctor availability
+  updateDoctorAvailability: async (id: string, isAvailable: boolean) => {
+    const response = await api.patch(`/api/web/admin/doctors/${id}/availability`, {
+      isAvailable
+    });
     return response.data;
   },
 };
