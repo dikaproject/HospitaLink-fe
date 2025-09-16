@@ -1,91 +1,47 @@
-// Update: hospitalink-fe/src/pages/doctor/create-prescription.tsx
 import { useState, useEffect } from 'react';
-import { ChevronLeft, Save } from 'lucide-react';
+import { ChevronLeft, Save, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { Link, useNavigate } from 'react-router-dom';
 
 import { CreatePrescriptionDialog } from '@/components/doctor/prescription/CreatePrescriptionDialog';
 import { prescriptionService } from '@/services/doctor/prescription';
-import { patientService } from '@/services/doctor/patient'; // Fixed import path
+import { patientService } from '@/services/doctor/patient';
 import type { CreatePrescriptionRequest } from '@/types/doctor/prescription';
-
-interface Patient {
-  id: string;
-  fullName: string;
-  nik: string;
-  phone: string;
-}
 
 export default function CreatePrescriptionPage() {
   const [loading, setLoading] = useState(false);
-  const [patients, setPatients] = useState<Patient[]>([]);
-  const [loadingPatients, setLoadingPatients] = useState(true);
+  const [patientStats, setPatientStats] = useState<{
+    total: number;
+    loading: boolean;
+  }>({
+    total: 0,
+    loading: true
+  });
   const navigate = useNavigate();
 
-  // Load patients on mount
+  // Load patient statistics
   useEffect(() => {
-    const loadPatients = async () => {
+    const loadPatientStats = async () => {
       try {
-        setLoadingPatients(true);
-        const response = await patientService.getAll();
+        const response = await patientService.getPatients();
         if (response.success) {
-          setPatients(response.data);
-        } else {
-          // If API doesn't exist yet, use mock data
-          setPatients([
-            {
-              id: '1',
-              fullName: 'Ahmad Wijaya',
-              nik: '1234567890123456',
-              phone: '081234567890'
-            },
-            {
-              id: '2', 
-              fullName: 'Siti Nurhaliza',
-              nik: '2345678901234567',
-              phone: '081234567891'
-            },
-            {
-              id: '3',
-              fullName: 'Budi Santoso', 
-              nik: '3456789012345678',
-              phone: '081234567892'
-            }
-          ]);
+          setPatientStats({
+            total: response.total || response.data.length,
+            loading: false
+          });
         }
       } catch (error) {
-        console.error('Load patients error:', error);
-        
-        // Use mock data as fallback
-        setPatients([
-          {
-            id: '1',
-            fullName: 'Ahmad Wijaya',
-            nik: '1234567890123456',
-            phone: '081234567890'
-          },
-          {
-            id: '2',
-            fullName: 'Siti Nurhaliza',
-            nik: '2345678901234567',
-            phone: '081234567891'
-          },
-          {
-            id: '3',
-            fullName: 'Budi Santoso',
-            nik: '3456789012345678', 
-            phone: '081234567892'
-          }
-        ]);
-        
-        toast.error('Menggunakan data pasien contoh');
-      } finally {
-        setLoadingPatients(false);
+        console.error('Load patient stats error:', error);
+        setPatientStats({
+          total: 0,
+          loading: false
+        });
+        toast.error('Gagal memuat statistik pasien');
       }
     };
 
-    loadPatients();
+    loadPatientStats();
   }, []);
 
   const handleCreatePrescription = async (data: CreatePrescriptionRequest) => {
@@ -105,19 +61,6 @@ export default function CreatePrescriptionPage() {
     }
   };
 
-  if (loadingPatients) {
-    return (
-      <div className="p-6 space-y-6">
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="text-center">
-            <div className="animate-spin w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
-            <p className="text-gray-600 dark:text-gray-300">Memuat data pasien...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
@@ -134,7 +77,49 @@ export default function CreatePrescriptionPage() {
           </div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Buat Resep Digital</h1>
           <p className="text-gray-600 dark:text-gray-300 mt-1">
-            Buat resep digital baru untuk pasien
+            Buat resep digital baru dengan sistem pencarian pasien otomatis
+          </p>
+        </div>
+
+        {/* Patient Stats */}
+        <div className="text-right">
+          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+            <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400">
+              <Users className="w-5 h-5" />
+              <span className="text-sm font-medium">Total Pasien</span>
+            </div>
+            <div className="text-2xl font-bold text-blue-700 dark:text-blue-300 mt-1">
+              {patientStats.loading ? (
+                <div className="animate-pulse bg-blue-200 dark:bg-blue-800 h-8 w-16 rounded"></div>
+              ) : (
+                patientStats.total
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Info Card */}
+      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-6">
+        <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-100 mb-2">
+          Fitur Pencarian Pasien Otomatis
+        </h3>
+        <div className="text-blue-700 dark:text-blue-200 space-y-2">
+          <p className="flex items-center gap-2">
+            <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+            Pencarian real-time dari database pasien yang sudah terdaftar
+          </p>
+          <p className="flex items-center gap-2">
+            <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+            Cari berdasarkan nama, NIK, telepon, atau email
+          </p>
+          <p className="flex items-center gap-2">
+            <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+            Hanya menampilkan pasien yang sudah pernah berkonsultasi
+          </p>
+          <p className="flex items-center gap-2">
+            <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+            Sistem pencarian obat dengan kategori dan stok real-time
           </p>
         </div>
       </div>
@@ -148,7 +133,6 @@ export default function CreatePrescriptionPage() {
           }
         }}
         onSubmit={handleCreatePrescription}
-        patients={patients}
       />
     </div>
   );

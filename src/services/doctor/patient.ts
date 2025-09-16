@@ -1,42 +1,82 @@
 import api from '@/types/api';
 
-interface Patient {
+export interface Patient {
   id: string;
   fullName: string;
-  nik?: string; // Make optional
-  phone?: string; // Make optional
-  email?: string;
+  nik?: string;
+  phone?: string;
   gender?: 'MALE' | 'FEMALE';
+  email?: string;
+  age?: number;
   dateOfBirth?: string;
+  registeredAt?: string;
+}
+
+export interface PatientSearchResponse {
+  success: boolean;
+  message: string;
+  data: Patient[];
+  total: number;
+  query?: string;
+}
+
+export interface PatientsResponse {
+  success: boolean;
+  message: string;
+  data: Patient[];
+  total?: number;
+  pagination?: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
 }
 
 class PatientService {
-  async getAll(): Promise<{ success: boolean; data: Patient[] }> {
+  // Get doctor's patients (from consultations/appointments)
+  async getPatients(): Promise<PatientsResponse> {
     try {
       const response = await api.get('/api/web/doctor/patients');
-      return {
-        success: true,
-        data: response.data.data || []
-      };
+      return response.data;
     } catch (error) {
       console.error('Get patients error:', error);
-      return {
-        success: false,
-        data: []
-      };
+      throw error;
     }
   }
 
-  async search(query: string): Promise<Patient[]> {
+  // Search patients
+  async searchPatients(query: string, limit?: number): Promise<PatientSearchResponse> {
     try {
-      const response = await api.get('/api/web/doctor/patients/search', {
-        params: { q: query }
-      });
-      return response.data.data || [];
+      const params: any = { q: query };
+      if (limit) params.limit = limit;
+
+      const response = await api.get('/api/web/doctor/patients/search', { params });
+      return response.data;
     } catch (error) {
       console.error('Search patients error:', error);
-      return [];
+      throw error;
     }
+  }
+
+  // Get all patients (for admin purposes)
+  async getAllPatients(params?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+  }): Promise<PatientsResponse> {
+    try {
+      const response = await api.get('/api/web/doctor/patients/all', { params });
+      return response.data;
+    } catch (error) {
+      console.error('Get all patients error:', error);
+      throw error;
+    }
+  }
+
+  // Legacy method for backward compatibility
+  async getAll(): Promise<PatientsResponse> {
+    return this.getPatients();
   }
 }
 
