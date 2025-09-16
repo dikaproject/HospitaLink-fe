@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { patientService } from '@/services/admin/patient'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -26,10 +27,10 @@ import {
     EyeOff,
     CheckCircle2,
     AlertCircle,
-    Info
+    Info,
+    RefreshCw
 } from 'lucide-react'
 import { toast } from 'sonner'
-import { patientService } from '@/services/admin/patient'
 import type { PatientCreate, Gender } from '@/types/admin/patient'
 
 interface PatientRegisterForm {
@@ -57,6 +58,7 @@ const RegisterPatient = () => {
     const [profilePreview, setProfilePreview] = useState<string>('')
     const [showPassword, setShowPassword] = useState(false)
     const [currentStep, setCurrentStep] = useState(1)
+    const [patientCounter, setPatientCounter] = useState<number | null>(null)
 
     const [formData, setFormData] = useState<PatientRegisterForm>({
         nik: '',
@@ -76,14 +78,90 @@ const RegisterPatient = () => {
         useCustomEmail: false
     })
 
-    // Generate auto email and password - FIXED
-    const generateCredentials = (fullName: string, nik: string) => {
-        const cleanName = fullName.toLowerCase().replace(/\s+/g, "")
-        const nikSuffix = nik.slice(-4)
-        const email = `${cleanName}${nikSuffix}@hospitalink.com`
-        const password = `${cleanName.charAt(0).toUpperCase()}${cleanName.slice(1)}${nikSuffix}!`
+    // Load patient counter on component mount
+    useEffect(() => {
+        const loadPatientCounter = async () => {
+            try {
+                console.log('🔢 Loading patient counter...')
+                
+                const response = await patientService.getNextPatientNumber()
+                
+                if (response.success) {
+                    console.log('✅ Patient counter loaded:', response.data)
+                    setPatientCounter(response.data.nextNumber)
+                } else {
+                    console.error('❌ Failed to load patient counter:', response.error)
+                    // Fallback: use timestamp-based counter
+                    const timestamp = Date.now()
+                    const counter = parseInt(timestamp.toString().slice(-3))
+                    setPatientCounter(counter)
+                    console.log('📋 Using fallback counter:', counter)
+                }
+            } catch (error) {
+                console.error('❌ Error loading patient counter:', error)
+                // Fallback counter
+                const timestamp = Date.now()
+                const counter = parseInt(timestamp.toString().slice(-3))
+                setPatientCounter(counter)
+                console.log('📋 Using fallback counter due to error:', counter)
+            }
+        }
+
+        loadPatientCounter()
+    }, [])
+
+    // Generate simple and memorable credentials
+    const generateCredentials = (fullName: string) => {
+        if (!fullName.trim()) return { email: '', password: '' }
+
+        // Clean and format name - remove special characters and extra spaces
+        const cleanName = fullName.trim().replace(/[^a-zA-Z\s]/g, '')
+        const nameParts = cleanName.split(' ').filter(part => part.length > 0)
+        
+        if (nameParts.length === 0) return { email: '', password: '' }
+
+        const firstName = nameParts[0].toLowerCase()
+        const lastName = nameParts.length > 1 ? nameParts[nameParts.length - 1].toLowerCase() : ''
+        
+        // Generate simple email
+        let emailPrefix = firstName
+        if (lastName && lastName !== firstName && lastName.length > 1) {
+            emailPrefix = `${firstName}.${lastName}`
+        }
+        
+        // Add patient counter for uniqueness with zero padding
+        const counterStr = patientCounter ? String(patientCounter).padStart(3, '0') : '001'
+        const email = `${emailPrefix}${counterStr}@hospitalink.com`
+        
+        // Generate simple password: FirstnameYear (e.g., John2024)
+        const currentYear = new Date().getFullYear()
+        const capitalizedFirstName = firstName.charAt(0).toUpperCase() + firstName.slice(1)
+        const password = `${capitalizedFirstName}${currentYear}`
+
         return { email, password }
     }
+
+    // Generate QR Code with USER_XXX format
+    const generateQRCode = () => {
+        if (!patientCounter) {
+            toast.error('Tunggu sebentar, sedang memuat data...')
+            return
+        }
+
+        // Format: USER_001, USER_002, etc.
+        const qrData = `USER_${String(patientCounter).padStart(3, '0')}`
+        setFormData(prev => ({ ...prev, qrCode: qrData }))
+        toast.success('QR Code berhasil di-generate')
+    }
+
+    // Auto-generate QR Code when component loads and counter is available
+    useEffect(() => {
+        if (patientCounter && !formData.qrCode) {
+            const qrData = `USER_${String(patientCounter).padStart(3, '0')}`
+            setFormData(prev => ({ ...prev, qrCode: qrData }))
+            console.log('🔤 Auto-generated QR Code:', qrData)
+        }
+    }, [patientCounter, formData.qrCode]) // Add formData.qrCode to dependency
 
     // Handle input changes
     const handleInputChange = (field: keyof PatientRegisterForm, value: string | boolean | File | null) => {
@@ -92,19 +170,79 @@ const RegisterPatient = () => {
             [field]: value
         }))
 
-        // Auto generate credentials when name or NIK changes (if not using custom email)
-        if ((field === 'fullName' || field === 'nik') && !formData.useCustomEmail) {
-            const name = field === 'fullName' ? value as string : formData.fullName
-            const nik = field === 'nik' ? value as string : formData.nik
-
-            if (name && nik && nik.length >= 4) {
-                const credentials = generateCredentials(name, nik)
+        // Auto generate credentials when name changes (if not using custom email)
+        if (field === 'fullName' && !formData.useCustomEmail) {
+            const name = value as string
+            if (name && name.trim().length > 0 && patientCounter) {
+                const credentials = generateCredentials(name)
+                console.log('🔐 Auto-generated credentials:', {
+                    name,
+                    email: credentials.email,
+                    passwordLength: credentials.password.length
+                })
                 setFormData(prev => ({
                     ...prev,
                     email: credentials.email,
                     password: credentials.password
                 }))
             }
+        }
+    }
+
+    // Generate new patient number and credentials
+    const generateNewCredentials = async () => {
+        if (!formData.fullName || formData.fullName.trim().length < 2) {
+            toast.error('Masukkan nama lengkap terlebih dahulu (minimal 2 karakter)')
+            return
+        }
+
+        try {
+            // Fetch fresh counter from server
+            const response = await patientService.getNextPatientNumber()
+            
+            let newCounter = patientCounter ? patientCounter + 1 : 1
+            
+            if (response.success) {
+                newCounter = response.data.nextNumber
+            }
+
+            setPatientCounter(newCounter)
+
+            const credentials = generateCredentials(formData.fullName)
+            const qrData = `USER_${String(newCounter).padStart(3, '0')}`
+
+            setFormData(prev => ({
+                ...prev,
+                email: credentials.email,
+                password: credentials.password,
+                qrCode: qrData
+            }))
+
+            console.log('🔄 Generated new credentials:', {
+                counter: newCounter,
+                email: credentials.email,
+                qrCode: qrData
+            })
+
+            toast.success('Kredensial baru berhasil di-generate')
+        } catch (error) {
+            console.error('❌ Error generating new credentials:', error)
+            
+            // Fallback: increment current counter
+            const newCounter = patientCounter ? patientCounter + 1 : 1
+            setPatientCounter(newCounter)
+
+            const credentials = generateCredentials(formData.fullName)
+            const qrData = `USER_${String(newCounter).padStart(3, '0')}`
+
+            setFormData(prev => ({
+                ...prev,
+                email: credentials.email,
+                password: credentials.password,
+                qrCode: qrData
+            }))
+
+            toast.success('Kredensial baru berhasil di-generate (mode fallback)')
         }
     }
 
@@ -132,13 +270,6 @@ const RegisterPatient = () => {
         }
     }
 
-    // Generate QR Code
-    const generateQRCode = () => {
-        const qrData = `PATIENT_${formData.nik}_${Date.now()}`
-        setFormData(prev => ({ ...prev, qrCode: qrData }))
-        toast.success('QR Code berhasil di-generate')
-    }
-
     // Validate form
     const validateForm = (): string[] => {
         const errors: string[] = []
@@ -164,6 +295,13 @@ const RegisterPatient = () => {
             if (age > 150 || birthDate > today) {
                 errors.push('Tanggal lahir tidak valid')
             }
+        }
+
+        // Validate QR Code - ADD THIS
+        if (!formData.qrCode) {
+            errors.push('QR Code harus di-generate')
+        } else if (!/^USER_\d{3}$/.test(formData.qrCode)) {
+            errors.push('Format QR Code tidak valid (harus USER_XXX)')
         }
 
         if (formData.useCustomEmail) {
@@ -221,16 +359,24 @@ const RegisterPatient = () => {
                 district: formData.district?.trim() || null,
                 regency: formData.regency?.trim() || null,
                 province: formData.province?.trim() || null,
+                qrCode: formData.qrCode?.trim() || null, // ADD THIS LINE
             }
+
+            console.log('📤 Sending patient data with QR Code:', {
+                ...patientData,
+                password: '[HIDDEN]',
+                qrCode: patientData.qrCode
+            })
 
             const response = await patientService.create(patientData)
 
             if (response.success) {
                 toast.success('🎉 Berhasil menambahkan pasien baru!', {
-                    description: `Pasien ${formData.fullName} telah terdaftar dengan email: ${formData.email}`,
+                    description: `Pasien ${formData.fullName} telah terdaftar dengan QR Code: ${formData.qrCode}`,
                     duration: 3000
                 })
 
+                // Reset form...
                 setFormData({
                     nik: '',
                     fullName: '',
@@ -251,7 +397,7 @@ const RegisterPatient = () => {
                 setProfilePreview('')
 
                 setTimeout(() => {
-                    navigate('/patients')
+                    navigate('/patient')
                 }, 2000)
 
             } else {
@@ -586,21 +732,62 @@ const RegisterPatient = () => {
                         </CardContent>
                     </Card>
 
-                    {/* Account Credentials Card */}
+                    {/* Account Credentials Card - UPDATED */}
                     <Card className="shadow-lg border-gray-700 bg-gray-800/50 backdrop-blur-sm">
                         <CardHeader className="bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-t-lg">
                             <CardTitle className="flex items-center gap-3">
                                 <div className="p-2 bg-white/20 rounded-lg">
                                     <Mail className="h-5 w-5" />
                                 </div>
-                                Akun Login
+                                Akun Login & QR Code
                             </CardTitle>
                             <CardDescription className="text-purple-100">
-                                Kredensial untuk akses sistem pasien
+                                Kredensial untuk akses sistem dan identitas pasien
                             </CardDescription>
                         </CardHeader>
 
                         <CardContent className="p-6 space-y-6 bg-gray-800/50">
+                            {/* QR Code Section - Moved to top */}
+                            <div className="bg-gradient-to-r from-indigo-900/30 to-purple-900/30 p-6 rounded-lg border border-indigo-800">
+                                <div className="flex items-center justify-between mb-4">
+                                    <div className="flex items-center gap-2">
+                                        <QrCode className="h-5 w-5 text-indigo-400" />
+                                        <h4 className="font-medium text-indigo-200">QR Code Pasien</h4>
+                                    </div>
+                                    <Badge variant="outline" className="border-indigo-600 text-indigo-300">
+                                        Auto-Generated
+                                    </Badge>
+                                </div>
+                                
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+                                    <div className="md:col-span-2">
+                                        <Input
+                                            type="text"
+                                            placeholder="QR Code akan di-generate otomatis"
+                                            value={formData.qrCode}
+                                            readOnly
+                                            className="h-11 bg-gray-700 border-gray-600 text-white placeholder-gray-400 font-mono text-lg text-center"
+                                        />
+                                        <p className="text-xs text-gray-400 mt-1 text-center">
+                                            Format: USER_001, USER_002, dst.
+                                        </p>
+                                    </div>
+                                    
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        onClick={generateQRCode}
+                                        disabled={!patientCounter}
+                                        className="h-11 bg-indigo-700 border-indigo-600 text-white hover:bg-indigo-600"
+                                    >
+                                        <QrCode className="h-4 w-4 mr-2" />
+                                        Generate Ulang
+                                    </Button>
+                                </div>
+                            </div>
+
+                            <Separator className="bg-gray-700" />
+
                             {/* Use Custom Email Checkbox */}
                             <div className="flex items-center space-x-3 p-4 bg-blue-900/30 rounded-lg border border-blue-800">
                                 <Checkbox
@@ -668,30 +855,65 @@ const RegisterPatient = () => {
                                     </div>
                                 </div>
                             ) : (
-                                <div className="bg-gradient-to-r from-blue-900/30 to-cyan-900/30 p-6 rounded-lg border border-blue-800">
-                                    <div className="flex items-start gap-3 mb-4">
-                                        <Info className="h-5 w-5 text-blue-400 mt-0.5" />
-                                        <div>
-                                            <h4 className="font-medium text-blue-200 mb-1">Auto-Generate Kredensial</h4>
-                                            <p className="text-sm text-blue-300">
-                                                Email dan password akan dibuat otomatis berdasarkan nama dan NIK
-                                            </p>
+                                <div className="bg-gradient-to-r from-emerald-900/30 to-teal-900/30 p-6 rounded-lg border border-emerald-800">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <div className="flex items-start gap-3">
+                                            <CheckCircle2 className="h-5 w-5 text-emerald-400 mt-0.5" />
+                                            <div>
+                                                <h4 className="font-medium text-emerald-200 mb-1">Kredensial Mudah Diingat</h4>
+                                                <p className="text-sm text-emerald-300">
+                                                    Email dan password sederhana berdasarkan nama pasien
+                                                </p>
+                                            </div>
                                         </div>
+                                        
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={generateNewCredentials}
+                                            disabled={!formData.fullName || !patientCounter}
+                                            className="bg-emerald-700 border-emerald-600 text-white hover:bg-emerald-600 text-xs"
+                                        >
+                                            <RefreshCw className="h-3 w-3 mr-1" />
+                                            Generate Ulang
+                                        </Button>
                                     </div>
+
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div className="bg-gray-700/50 p-3 rounded-lg border border-gray-600">
-                                            <Label className="text-xs font-medium text-gray-400 uppercase tracking-wide">Email</Label>
-                                            <p className="font-mono text-sm mt-1 text-blue-300">
-                                                {formData.email || 'Akan dibuat setelah nama & NIK diisi'}
+                                        <div className="bg-gray-700/50 p-4 rounded-lg border border-gray-600">
+                                            <Label className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2 block">
+                                                📧 Email Login
+                                            </Label>
+                                            <p className="font-mono text-base text-emerald-300 bg-gray-800 p-2 rounded border">
+                                                {formData.email || 'Masukkan nama untuk generate email'}
+                                            </p>
+                                            <p className="text-xs text-gray-500 mt-1">
+                                                Format: nama.belakang001@hospitalink.com
                                             </p>
                                         </div>
-                                        <div className="bg-gray-700/50 p-3 rounded-lg border border-gray-600">
-                                            <Label className="text-xs font-medium text-gray-400 uppercase tracking-wide">Password</Label>
-                                            <p className="font-mono text-sm mt-1 text-blue-300">
-                                                {formData.password || 'Akan dibuat setelah nama & NIK diisi'}
+                                        
+                                        <div className="bg-gray-700/50 p-4 rounded-lg border border-gray-600">
+                                            <Label className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2 block">
+                                                🔐 Password Login
+                                            </Label>
+                                            <p className="font-mono text-base text-emerald-300 bg-gray-800 p-2 rounded border">
+                                                {formData.password || 'Masukkan nama untuk generate password'}
+                                            </p>
+                                            <p className="text-xs text-gray-500 mt-1">
+                                                Format: NamaTahun (contoh: John2024)
                                             </p>
                                         </div>
                                     </div>
+
+                                    {formData.email && formData.password && (
+                                        <div className="mt-4 p-3 bg-emerald-800/30 rounded-lg border border-emerald-700">
+                                            <p className="text-sm text-emerald-200 flex items-center gap-2">
+                                                <Info className="h-4 w-4" />
+                                                <strong>Informasikan kepada pasien:</strong> Email dan password ini untuk login ke aplikasi pasien
+                                            </p>
+                                        </div>
+                                    )}
                                 </div>
                             )}
                         </CardContent>

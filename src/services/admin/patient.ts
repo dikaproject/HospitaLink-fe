@@ -18,7 +18,7 @@ import {
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
 const API_PREFIX = '/api/web/admin/patients'
 
-// Create axios instance8
+// Create axios instance
 const apiClient = axios.create({
     baseURL: API_BASE_URL,
     timeout: 15000,
@@ -114,15 +114,6 @@ const buildQueryString = (params: PatientSearchQuery): string => {
     }
 
     return queryParams.toString()
-}
-
-// Add type guard functions
-const isSuccessResponse = <T>(response: any): response is ApiSuccessResponse<T> => {
-    return response.success === true && response.data !== undefined
-}
-
-const isErrorResponse = (response: any): response is ApiErrorResponse => {
-    return response.success === false && typeof response.error === 'string'
 }
 
 // Patient Service - Fixed response handling
@@ -450,6 +441,45 @@ export const patientService = {
                 success: false,
                 error: handleApiError(error),
                 message: 'Failed to delete patient'
+            }
+        }
+    },
+
+    // FIXED: Get next patient number method
+    getNextPatientNumber: async (): Promise<ApiSuccessResponse<{ nextNumber: number; currentCount: number }> | ApiErrorResponse> => {
+        try {
+            console.log('📊 Fetching next patient number from:', `${API_PREFIX}/next-number`)
+
+            const response = await apiClient.get(`${API_PREFIX}/next-number`)
+
+            console.log('📊 Raw next number response:', response.data)
+
+            if (!response.data) {
+                throw new Error('Invalid response from server')
+            }
+
+            if (response.data.success) {
+                console.log('✅ Next patient number retrieved successfully:', response.data.data)
+                return {
+                    success: true,
+                    data: response.data.data,
+                    message: response.data.message || 'Next patient number retrieved successfully'
+                }
+            } else {
+                console.error('❌ Next patient number request failed:', response.data)
+                return {
+                    success: false,
+                    error: response.data?.error || response.data?.message || 'Failed to get next patient number',
+                    message: response.data?.message || 'Failed to get next patient number'
+                }
+            }
+        } catch (error: unknown) {
+            console.error('❌ Error fetching next patient number:', error)
+            
+            return {
+                success: false,
+                error: handleApiError(error),
+                message: 'Failed to get next patient number'
             }
         }
     }

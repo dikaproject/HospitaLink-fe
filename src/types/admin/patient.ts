@@ -277,17 +277,18 @@ export interface PatientFormValues {
 // Create type - make sure it matches backend expectations
 export interface PatientCreate {
   email: string           // Required
-  password: string        // Required - must meet complexity requirements
-  fullName: string        // Required - only letters, spaces, dots, hyphens
-  phone?: string | null   // Optional - Indonesian format: 08xxxxxxxxx
-  nik?: string | null     // Optional - exactly 16 digits
-  gender?: Gender | null  // Optional - MALE or FEMALE
-  dateOfBirth?: string | null // Optional - ISO date string (backend converts to DateTime)
-  street?: string | null  // Optional - max 200 chars
-  village?: string | null // Optional - max 100 chars
-  district?: string | null // Optional - max 100 chars
-  regency?: string | null  // Optional - max 100 chars
-  province?: string | null // Optional - max 100 chars
+  password: string        // Required
+  fullName: string        // Required
+  phone?: string | null   
+  nik?: string | null     
+  gender?: Gender | null  
+  dateOfBirth?: string | null 
+  street?: string | null  
+  village?: string | null 
+  district?: string | null 
+  regency?: string | null  
+  province?: string | null 
+  qrCode?: string | null  // Add QR Code field
 }
 
 // Update type - password not needed for updates
@@ -414,4 +415,16 @@ export interface PatientServiceResponse<T> {
   data?: T
   message?: string
   error?: string
+}
+
+export interface NextPatientNumberData {
+    nextNumber: number
+    currentCount: number
+}
+
+export interface NextPatientNumberResponse {
+    success: boolean
+    data?: NextPatientNumberData
+    message: string
+    error?: string
 }

@@ -89,7 +89,7 @@ const adminData = {
       items: [
         { title: "Cek Resep (Kode)", url: "/pharmacy/prescriptions" },
         { title: "Kelola Obat", url: "/pharmacy/medications" },
-        { title: "Pembayaran Resep", url: "/pharmacy/payments" },
+        // { title: "Pembayaran Resep", url: "/pharmacy/payments" },
         { title: "Laporan Farmasi", url: "/pharmacy/reports" },
       ],
     },
@@ -105,7 +105,7 @@ const adminData = {
   ],
   projects: [
     { name: "Registrasi Cepat", url: "/patient/quick-register", icon: UserPlus },
-    { name: "Check-in Pasien", url: "/patient/quick-checkin", icon: QrCode },
+    // { name: "Check-in Pasien", url: "/patient/quick-checkin", icon: QrCode },
     { name: "Panggil Antrian", url: "/queue/quick-call", icon: Clock },
     { name: "Cek Resep", url: "/pharmacy/quick-check", icon: Search },
   ],
