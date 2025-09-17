@@ -72,7 +72,72 @@ export interface CallNextPatientResponse {
 export interface CompleteConsultationRequest {
   queueId: string;
   notes?: string;
-  diagnosis?: string;
-  treatment?: string;
-  prescriptions?: any[];
+  diagnosis: string;
+  treatment: string;
+  prescriptions?: {
+    medicationId?: string;
+    medicationName: string;
+    dosage: string;
+    frequency: string;
+    duration: string;
+    quantity: number;
+    price: number;
+    instructions: string;
+    notes: string;
+  }[];
+  labTests?: {
+    testName: string;
+    testType: string;
+    category: string;
+    notes: string;
+    isCritical: boolean;
+  }[];
+  followUpDays?: number;
+  vitalSigns?: {
+    temperature?: string;
+    bloodPressure?: string;
+    heartRate?: string;
+    respiratoryRate?: string;
+    weight?: string;
+    height?: string;
+  };
+}
+
+export interface CompleteConsultationResponse {
+  completedQueue: Queue;
+  medicalRecord: {
+    id: string;
+    diagnosis: string;
+    treatment: string;
+    visitDate: string;
+    followUpDate?: string;
+    vitalSigns?: any;
+  };
+  prescription?: {
+    id: string;
+    code: string;
+    medicationsCount: number;
+    totalAmount: number;
+    medications: {
+      name: string;
+      quantity: number;
+      frequency: string;
+      duration: string;
+    }[];
+  };
+  labResults: {
+    id: string;
+    testName: string;
+    testType: string;
+    category: string;
+    isCritical: boolean;
+  }[];
+  summary: {
+    medicalRecordCreated: boolean;
+    prescriptionCreated: boolean;
+    labResultsCreated: number;
+    followUpScheduled: boolean;
+    totalMedications: number;
+    totalLabTests: number;
+  };
 }

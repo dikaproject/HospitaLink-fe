@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { 
   Clock, 
   Users, 
@@ -25,10 +25,15 @@ export default function DoctorQueue() {
   const [calling, setCalling] = useState(false);
   const [selectedQueue, setSelectedQueue] = useState<Queue | null>(null);
   const [showCompleteDialog, setShowCompleteDialog] = useState(false);
+  
+  // ✅ Control auto-refresh when dialog is open
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  const loadQueueData = async () => {
+  const loadQueueData = async (showLoadingSpinner = true) => {
     try {
-      setLoading(true);
+      if (showLoadingSpinner) setLoading(true);
+      
       const [todayData, waitingData] = await Promise.all([
         queueService.getTodayQueue(),
         queueService.getWaitingQueues()
@@ -40,8 +45,55 @@ export default function DoctorQueue() {
       console.error('Load queue data error:', error);
       toast.error('Gagal memuat data antrian');
     } finally {
-      setLoading(false);
+      if (showLoadingSpinner) setLoading(false);
     }
+  };
+
+  // ✅ Setup auto-refresh with dialog awareness
+  const startAutoRefresh = () => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+    }
+    
+    intervalRef.current = setInterval(() => {
+      // Only auto-refresh if no dialog is open
+      if (!isDialogOpen) {
+        console.log('🔄 Auto-refreshing queue data...');
+        loadQueueData(false); // Don't show loading spinner for auto-refresh
+      } else {
+        console.log('⏸️ Skipping auto-refresh: Dialog is open');
+      }
+    }, 30000); // 30 seconds
+  };
+
+  const stopAutoRefresh = () => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+  };
+
+  // ✅ Handle dialog open/close with auto-refresh control
+  const handleOpenCompleteDialog = (queue: Queue) => {
+    console.log('🏁 Opening complete consultation dialog');
+    setSelectedQueue(queue);
+    setShowCompleteDialog(true);
+    setIsDialogOpen(true);
+    stopAutoRefresh(); // Stop auto-refresh when dialog opens
+  };
+
+  const handleCloseCompleteDialog = () => {
+    console.log('❌ Closing complete consultation dialog');
+    setShowCompleteDialog(false);
+    setIsDialogOpen(false);
+    setSelectedQueue(null);
+    
+    // Restart auto-refresh when dialog closes
+    setTimeout(() => {
+      startAutoRefresh();
+      // Refresh data immediately after dialog closes
+      loadQueueData(false);
+    }, 100);
   };
 
   const handleCallNext = async () => {
@@ -51,7 +103,7 @@ export default function DoctorQueue() {
       
       if (result.calledPatient) {
         toast.success(`Pasien ${result.queueNumber} berhasil dipanggil!`);
-        loadQueueData(); // Refresh data
+        loadQueueData(false); // Refresh without loading spinner
       } else {
         toast.info('Tidak ada pasien dalam antrian');
       }
@@ -67,8 +119,7 @@ export default function DoctorQueue() {
     try {
       await queueService.completeConsultation(data);
       toast.success('Konsultasi berhasil diselesaikan!');
-      setSelectedQueue(null);
-      loadQueueData(); // Refresh data
+      handleCloseCompleteDialog(); // This will trigger refresh
     } catch (error) {
       console.error('Complete consultation error:', error);
       toast.error('Gagal menyelesaikan konsultasi');
@@ -79,19 +130,32 @@ export default function DoctorQueue() {
     try {
       await queueService.skipPatient(queue.id, 'Dilewati oleh dokter');
       toast.success(`Pasien ${queue.queueNumber} berhasil dilewati`);
-      loadQueueData(); // Refresh data
+      loadQueueData(false);
     } catch (error) {
       console.error('Skip patient error:', error);
       toast.error('Gagal melewati pasien');
     }
   };
 
+  // ✅ Initial load and auto-refresh setup
   useEffect(() => {
     loadQueueData();
-    // Auto refresh every 30 seconds
-    const interval = setInterval(loadQueueData, 30000);
-    return () => clearInterval(interval);
+    startAutoRefresh();
+
+    // Cleanup on unmount
+    return () => {
+      stopAutoRefresh();
+    };
   }, []);
+
+  // ✅ Update auto-refresh when dialog state changes
+  useEffect(() => {
+    if (isDialogOpen) {
+      stopAutoRefresh();
+    } else {
+      startAutoRefresh();
+    }
+  }, [isDialogOpen]);
 
   if (loading) {
     return (
@@ -128,9 +192,14 @@ export default function DoctorQueue() {
             {queueData?.doctorInfo.isOnDuty ? 'Sedang Bertugas' : 'Tidak Bertugas'}
           </Badge>
           
+          {/* ✅ Show auto-refresh status */}
+          <Badge variant="outline" className="text-xs">
+            {isDialogOpen ? '⏸️ Auto-refresh paused' : '🔄 Auto-refresh aktif'}
+          </Badge>
+          
           <Button 
             variant="outline" 
-            onClick={loadQueueData}
+            onClick={() => loadQueueData()}
             disabled={loading}
           >
             <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
@@ -152,11 +221,9 @@ export default function DoctorQueue() {
             <div className="flex items-center justify-between">
               <QueueCard queue={queueData.current} />
               <Button 
-                onClick={() => {
-                  setSelectedQueue(queueData.current);
-                  setShowCompleteDialog(true);
-                }}
+                onClick={() => handleOpenCompleteDialog(queueData.current!)}
                 className="bg-green-600 hover:bg-green-700"
+                disabled={isDialogOpen}
               >
                 <CheckCircle className="w-4 h-4 mr-2" />
                 Selesaikan
@@ -221,7 +288,7 @@ export default function DoctorQueue() {
               </div>
               <Button 
                 onClick={handleCallNext}
-                disabled={calling}
+                disabled={calling || isDialogOpen}
                 className="bg-green-600 hover:bg-green-700"
               >
                 <Phone className="w-4 h-4 mr-2" />
@@ -244,7 +311,7 @@ export default function DoctorQueue() {
                 <QueueCard
                   key={queue.id}
                   queue={queue}
-                  showActions={!queueData?.current}
+                  showActions={!queueData?.current && !isDialogOpen}
                   onCall={handleCallNext}
                   onSkip={handleSkipPatient}
                 />
@@ -264,12 +331,13 @@ export default function DoctorQueue() {
         </CardContent>
       </Card>
 
-      {/* Existing CompleteConsultationDialog */}
+      {/* ✅ Enhanced Complete Consultation Dialog */}
       <CompleteConsultationDialog
         queue={selectedQueue}
         open={showCompleteDialog}
         onOpenChange={setShowCompleteDialog}
         onComplete={handleCompleteConsultation}
+        onClose={handleCloseCompleteDialog}
       />
     </div>
   );

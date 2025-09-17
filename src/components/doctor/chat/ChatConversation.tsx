@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { chatService } from '@/services/doctor/chat';
+import { CompleteConsultationDialog } from './CompleteConsultationDialog';
 
 interface Message {
   id: string;
@@ -162,6 +163,12 @@ export function ChatConversation({ consultationId }: ChatConversationProps) {
       case 'URGENT': return 'bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-200 border-orange-200 dark:border-orange-800';
       default: return 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 border-blue-200 dark:border-blue-800';
     }
+  };
+
+  const handleConsultationCompleted = () => {
+    // Refresh conversation to show completion message
+    loadConversation();
+    toast.success('Konsultasi berhasil diselesaikan');
   };
 
   if (loading) {
@@ -396,49 +403,13 @@ export function ChatConversation({ consultationId }: ChatConversationProps) {
       </div>
 
       {/* Complete Consultation Dialog */}
-      {showCompleteDialog && (
-        <div className="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md shadow-xl border border-gray-200 dark:border-gray-700">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                Selesaikan Konsultasi
-              </h3>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowCompleteDialog(false)}
-                className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
-              >
-                <X className="w-4 h-4" />
-              </Button>
-            </div>
-            
-            <p className="text-gray-600 dark:text-gray-300 mb-6">
-              Fitur penyelesaian konsultasi dengan opsi resep digital, rujukan, atau follow-up akan segera tersedia.
-            </p>
-            
-            <div className="flex justify-end gap-2">
-              <Button 
-                variant="outline" 
-                onClick={() => setShowCompleteDialog(false)}
-                className="bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600"
-              >
-                Tutup
-              </Button>
-              <Button 
-                className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white"
-                onClick={() => {
-                  // TODO: Implement completion logic
-                  toast.info('Fitur akan segera tersedia');
-                  setShowCompleteDialog(false);
-                }}
-              >
-                Selesaikan
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      <CompleteConsultationDialog
+        consultationId={consultationId}
+        patientName={patient?.fullName || 'Unknown Patient'}
+        isOpen={showCompleteDialog}
+        onClose={() => setShowCompleteDialog(false)}
+        onCompleted={handleConsultationCompleted}
+      />
     </div>
   );
 }

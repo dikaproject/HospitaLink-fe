@@ -3,7 +3,8 @@ import type {
   Queue, 
   TodayQueueResponse, 
   CallNextPatientResponse, 
-  CompleteConsultationRequest 
+  CompleteConsultationRequest,
+  CompleteConsultationResponse
 } from '@/types/doctor/queue';
 
 class QueueService {
@@ -51,11 +52,7 @@ class QueueService {
   }
 
   // Complete consultation
-  async completeConsultation(data: CompleteConsultationRequest): Promise<{
-    completedQueue: Queue;
-    medicalRecordCreated: boolean;
-    prescriptionCreated: boolean;
-  }> {
+  async completeConsultation(data: CompleteConsultationRequest): Promise<CompleteConsultationResponse> {
     const response = await api.post('/api/web/doctor/queue/complete', data);
     return response.data.data;
   }

@@ -85,18 +85,20 @@ class ChatService {
   }
 
   async completeConsultation(consultationId: string, data: {
-    decision: string;
-    doctorNotes: string;
+    diagnosis: string;
+    treatment: string;
+    doctorNotes?: string;
     prescriptions?: any[];
-    followUpDays?: number;
-    referralSpecialty?: string;
-    appointmentNeeded?: boolean;
+    followUpDays?: number | null;
+    decision?: string;
   }): Promise<any> {
     try {
+      console.log('🏁 Completing consultation:', consultationId, data);
       const response = await api.post(`/api/web/doctor/chat/conversation/${consultationId}/complete`, data);
+      console.log('✅ Consultation completed:', response.data);
       return response.data.data;
     } catch (error) {
-      console.error('Complete consultation error:', error);
+      console.error('❌ Complete consultation error:', error);
       throw error;
     }
   }
