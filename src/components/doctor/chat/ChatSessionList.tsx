@@ -41,13 +41,28 @@ export function ChatSessionList({ onSelectSession, selectedSessionId }: ChatSess
       setError(null);
       setLoading(true);
 
-      console.log('Testing API connection...');
-      await chatService.testConnection();
-      console.log('Connection test successful');
+      console.log('🔍 Starting to load sessions...');
+      console.log('Auth token:', localStorage.getItem('token') ? 'Present' : 'Missing');
 
-      console.log('Loading chat sessions...');
+      // Test connection first
+      try {
+        console.log('🧪 Testing API connection...');
+        await chatService.testConnection();
+        console.log('✅ Connection test successful');
+      } catch (testError: any) {
+        console.error('❌ Connection test failed:', testError);
+        // Continue anyway to see if direct call works
+      }
+
+      console.log('📱 Loading chat sessions...');
       const data = await chatService.getActiveSessions();
       
+      console.log('✅ Sessions loaded successfully:', {
+        sessionsCount: data.sessions?.length || 0,
+        summary: data.summary,
+        doctorInfo: data.doctorInfo
+      });
+
       setSessions(data.sessions || []);
       setSummary(data.summary || {
         emergency: 0,
@@ -57,26 +72,22 @@ export function ChatSessionList({ onSelectSession, selectedSessionId }: ChatSess
       });
       setDoctorInfo(data.doctorInfo || null);
 
-      console.log('Sessions loaded successfully:', data.sessions?.length || 0);
-
     } catch (error: any) {
-      console.error('Load sessions error:', error);
+      console.error('❌ Load sessions error:', error);
       
       let errorMessage = 'Unknown error occurred';
       
       if (error.code === 'ERR_NETWORK' || error.message?.includes('Network Error')) {
-        errorMessage = 'Network error. Server may not be running on port 5000.';
+        errorMessage = 'Network error. Check if backend is running on correct port.';
       } else if (error.response?.status === 401) {
         errorMessage = 'Authentication failed. Please login again.';
         localStorage.removeItem('token');
         window.location.href = '/auth';
         return;
       } else if (error.response?.status === 404) {
-        errorMessage = 'Chat API endpoints not found. Check server routes.';
+        errorMessage = `Chat API endpoints not found: ${error.config?.url || 'Unknown URL'}`;
       } else if (error.response?.status === 500) {
         errorMessage = 'Server internal error. Check server logs.';
-      } else if (error.message?.includes('<!doctype') || error.message?.includes('<html')) {
-        errorMessage = 'Server returned HTML instead of JSON. API endpoint may be incorrect.';
       } else if (error.response?.data?.message) {
         errorMessage = error.response.data.message;
       } else if (error.message) {

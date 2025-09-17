@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
-import { Send, Paperclip, User, Clock, AlertTriangle, FileText, X } from 'lucide-react';
+import { Send, Paperclip, User, Clock, AlertTriangle, FileText, X, MessageCircle, RefreshCw } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
+import { chatService } from '@/services/doctor/chat';
 
 interface Message {
   id: string;
@@ -51,6 +52,7 @@ export function ChatConversation({ consultationId }: ChatConversationProps) {
   const [newMessage, setNewMessage] = useState('');
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [showCompleteDialog, setShowCompleteDialog] = useState(false);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -68,21 +70,40 @@ export function ChatConversation({ consultationId }: ChatConversationProps) {
   const loadConversation = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`/api/web/doctor/chat/conversation/${consultationId}`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
+      setError(null);
       
-      const data = await response.json();
-      if (data.success) {
-        setPatient(data.data.patient);
-        setChatInfo(data.data.chatInfo);
-        setMessages(data.data.messages);
+      console.log('💬 Loading conversation for:', consultationId);
+      
+      // Use the proper service instead of direct fetch
+      const data = await chatService.getConversation(consultationId);
+      
+      console.log('✅ Conversation loaded:', data);
+      
+      setPatient(data.patient);
+      setChatInfo(data.chatInfo);
+      setMessages(data.messages || []);
+      
+    } catch (error: any) {
+      console.error('❌ Load conversation error:', error);
+      
+      let errorMessage = 'Gagal memuat percakapan';
+      
+      if (error.response?.status === 404) {
+        errorMessage = 'Konsultasi tidak ditemukan';
+      } else if (error.response?.status === 401) {
+        errorMessage = 'Sesi login telah berakhir';
+        // Redirect to login
+        localStorage.removeItem('token');
+        window.location.href = '/auth';
+        return;
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.message) {
+        errorMessage = error.message;
       }
-    } catch (error) {
-      console.error('Load conversation error:', error);
-      toast.error('Gagal memuat percakapan');
+      
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -93,29 +114,32 @@ export function ChatConversation({ consultationId }: ChatConversationProps) {
 
     try {
       setSending(true);
-      const response = await fetch(`/api/web/doctor/chat/conversation/${consultationId}/message`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          message: newMessage,
-          type: 'text'
-        })
+      
+      console.log('📤 Sending message to:', consultationId);
+      
+      // Use the proper service
+      const sentMessage = await chatService.sendMessage(consultationId, {
+        message: newMessage,
+        type: 'text'
       });
-
-      const data = await response.json();
-      if (data.success) {
-        setMessages(prev => [...prev, data.data.message]);
-        setNewMessage('');
-        toast.success('Pesan terkirim');
-      } else {
-        toast.error(data.message);
+      
+      console.log('✅ Message sent:', sentMessage);
+      
+      setMessages(prev => [...prev, sentMessage]);
+      setNewMessage('');
+      toast.success('Pesan terkirim');
+      
+    } catch (error: any) {
+      console.error('❌ Send message error:', error);
+      
+      let errorMessage = 'Gagal mengirim pesan';
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.message) {
+        errorMessage = error.message;
       }
-    } catch (error) {
-      console.error('Send message error:', error);
-      toast.error('Gagal mengirim pesan');
+      
+      toast.error(errorMessage);
     } finally {
       setSending(false);
     }
@@ -146,6 +170,26 @@ export function ChatConversation({ consultationId }: ChatConversationProps) {
         <div className="text-center">
           <div className="animate-spin w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
           <p className="text-gray-600 dark:text-gray-300">Memuat percakapan...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="h-full flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <div className="text-center">
+          <AlertTriangle className="w-12 h-12 mx-auto mb-4 text-red-500" />
+          <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
+            Error Loading Conversation
+          </h3>
+          <p className="text-gray-600 dark:text-gray-400 mb-4 max-w-md">
+            {error}
+          </p>
+          <Button onClick={loadConversation} className="gap-2">
+            <RefreshCw className="w-4 h-4" />
+            Coba Lagi
+          </Button>
         </div>
       </div>
     );
@@ -241,7 +285,7 @@ export function ChatConversation({ consultationId }: ChatConversationProps) {
           {chatInfo.aiAnalysis && (
             <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-600">
               <p className="text-xs text-gray-600 dark:text-gray-400">
-                <strong>AI Analysis:</strong> {chatInfo.aiAnalysis.message}
+                <strong>AI Analysis:</strong> {chatInfo.aiAnalysis.message || 'No AI analysis available'}
                 {chatInfo.aiAnalysis.confidence && (
                   <span className="ml-2">
                     (Confidence: {Math.round(chatInfo.aiAnalysis.confidence * 100)}%)
