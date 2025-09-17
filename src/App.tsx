@@ -7,7 +7,9 @@ import Doctor from "@/pages/admin/doctor"
 import DoctorAttendance from "@/pages/admin/doctor-attendance"
 import Queue from "@/pages/admin/queue"
 import PatientCard from "@/pages/admin/patient-card"
+import PatientCheckin from "@/pages/admin/checkin-patient"
 import RegisterPatient from "@/pages/admin/register-patient"
+import MedicationPage from "./pages/admin/medication"
 import PaymentPrescription from "@/pages/admin/prescription"
 import Chart from "@/pages/chart"
 
@@ -39,10 +41,12 @@ function App() {
           <Route path="/patient" element={<Patient />} />
           <Route path="/queue" element={<Queue />} />
           <Route path="/patient/cards" element={<PatientCard />} />
+          <Route path="/patient/checkin" element={<PatientCheckin />} />
           <Route path="/patient/register" element={<RegisterPatient />} />
           <Route path="/pharmacy/prescriptions" element={<PaymentPrescription />} />
           <Route path="/doctor" element={<Doctor />} />
           <Route path="/doctor/attendance" element={<DoctorAttendance />} />
+          <Route path="/pharmacy/medications" element={<MedicationPage />} />
           <Route path="/chart" element={<Chart />} />
           
           {/* Doctor routes */}
