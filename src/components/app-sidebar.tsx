@@ -33,7 +33,7 @@ import { authService } from "@/services/auth"
 import "./css/sidebar.css"
 
 // Data untuk Admin
-const adminData = {
+const adminData = { 
   user: {
     name: "Admin HospitaLink",
     email: "admin@hospitalink.com",
